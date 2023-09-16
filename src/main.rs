@@ -1,12 +1,16 @@
-#![no_std]
-#![no_main]
+#![cfg_attr(not(feature="std"), no_std)]
+#![cfg_attr(not(feature="std"), no_main)]
 #![feature(type_alias_impl_trait)]
 
-use defmt::info;
 use embassy_executor::Spawner;
-use embassy_stm32::time::Hertz;
-use embassy_stm32::Config;
 use embassy_time::{Duration, Timer};
+
+mod boards;
+use boards::GenericBoard;
+
+mod fmt;
+
+#[cfg(feature="defmt")]
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::task]
@@ -16,11 +20,8 @@ async fn task1() {
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) -> ! {
-    let mut config = Config::default();
-    config.rcc.sys_ck = Some(Hertz(84_000_000));
-    let _p = embassy_stm32::init(config);
-
-    defmt::unwrap!(_spawner.spawn(task1()));
+    boards::Board::init();
+    unwrap!(_spawner.spawn(task1()));
 
     loop {
         info!("Hello from main!");

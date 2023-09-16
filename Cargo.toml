@@ -6,25 +6,83 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embassy-stm32 = { version = "0.1.0", git="https://github.com/embassy-rs/embassy.git", features = ["nightly", "unstable-traits", "unstable-pac", "memory-x", "time-driver-any", "exti", "embedded-sdmmc", "chrono"]  }
-embassy-sync = { version = "0.2.0", git="https://github.com/embassy-rs/embassy.git",  features = [] }
-embassy-executor = { version = "0.3.0", git="https://github.com/embassy-rs/embassy.git", features = ["nightly", "executor-thread", "executor-interrupt", "integrated-timers"] }
-embassy-time = { version = "0.1.2", git="https://github.com/embassy-rs/embassy.git", features = ["unstable-traits", "tick-hz-32_768"] }
+static_cell = { version = "1.1", features = ["nightly"] }
 
-defmt = "0.3"
-defmt-rtt = "0.4"
+defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
+cortex-m = { version = "0.7.6", features = [
+  "inline-asm",
+  "critical-section-single-core",
+], optional = true }
+cortex-m-rt = { version = "0.7.0", optional = true }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
-cortex-m = { version = "0.7.6", features = ["inline-asm", "critical-section-single-core"] }
-cortex-m-rt = "0.7.0"
-panic-probe = { version = "0.3", features = ["print-defmt"] }
-static_cell = { version = "1.1", features = ["nightly"]}
+[dependencies.embassy-sync]
+version = "0.3.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
+
+[dependencies.embassy-stm32]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
+features = [
+  "nightly",
+  "unstable-traits",
+  "unstable-pac",
+  "memory-x",
+  "time-driver-any",
+  "exti",
+  "embedded-sdmmc",
+  "chrono",
+]
+optional = true
+
+[dependencies.embassy-executor]
+version = "0.3.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
+features = ["nightly"]
+
+[dependencies.embassy-time]
+version = "0.1.2"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
+features = ["nightly"]
+
 
 [features]
-default = ["defmt", "f407ve"]
-defmt = [
-"embassy-executor/defmt",
-"embassy-time/defmt",
-"embassy-time/defmt-timestamp-uptime",
-"embassy-stm32/defmt",
+default = [
+  # "f407ve", "defmt"
+  # "std"
 ]
-f407ve = ["embassy-stm32/stm32f407ve", "embassy-executor/arch-cortex-m"]
+
+f407ve = ["stm32", "embassy-stm32/stm32f407ve"]
+
+stm32 = [
+  "embassy-stm32",
+  "embassy-executor/executor-thread",
+  "embassy-executor/executor-interrupt",
+  "embassy-executor/integrated-timers",
+  "embassy-time/tick-hz-32_768",
+  "cortex-m",
+  "cortex-m-rt",
+  "embassy-executor/arch-cortex-m",
+]
+
+defmt = [
+  "dep:defmt",
+  "defmt-rtt",
+  "panic-probe",
+  "embassy-executor/defmt",
+  "embassy-stm32/defmt",
+]
+
+std = [
+  "embassy-executor/arch-std",
+  "embassy-executor/executor-thread",
+  "embassy-executor/log",
+  "embassy-executor/integrated-timers",
+  "embassy-time/log",
+  "embassy-time/std",
+]
