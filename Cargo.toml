@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 static_cell = { version = "1.1", features = ["nightly"] }
+embedded-io-async = { version = "0.5.0" }
+heapless = "0.7.16"
 
 defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
@@ -16,6 +18,7 @@ cortex-m = { version = "0.7.6", features = [
 ], optional = true }
 cortex-m-rt = { version = "0.7.0", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
+async-io = { version = "1.6.0", optional = true }
 
 [dependencies.embassy-sync]
 version = "0.3.0"
@@ -50,14 +53,19 @@ git = "https://github.com/embassy-rs/embassy.git"
 rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
 features = ["nightly"]
 
+[dependencies.embassy-futures]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
+
 
 [features]
 default = [
-  # "f407ve", "defmt"
-  # "std"
+  # "f407vg", "defmt"
+  "std",
 ]
 
-f407ve = ["stm32", "embassy-stm32/stm32f407ve"]
+f407vg = ["stm32", "embassy-stm32/stm32f407vg"]
 
 stm32 = [
   "embassy-stm32",
@@ -85,4 +93,34 @@ std = [
   "embassy-executor/integrated-timers",
   "embassy-time/log",
   "embassy-time/std",
+  "async-io",
+  "embedded-io-async/std",
 ]
+
+# cargo build/run
+# [profile.dev]
+# codegen-units = 1
+# debug = 2
+# debug-assertions = true # <-
+# incremental = true
+# opt-level = 0           # <-
+# overflow-checks = true  # <-
+# lto = false
+#
+# [profile.dev.package."*"]
+# codegen-units = 1
+# debug = 2
+# debug-assertions = false # <-
+# incremental = true
+# opt-level = "s"          # <-
+# overflow-checks = false  # <-
+#
+# # cargo build/run --release
+# [profile.release]
+# codegen-units = 1
+# debug = 2
+# debug-assertions = false # <-
+# incremental = false
+# lto = 'fat'
+# opt-level = 2            # <-
+# overflow-checks = false  # <-

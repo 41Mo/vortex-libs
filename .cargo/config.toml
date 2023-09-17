@@ -2,5 +2,8 @@
 # replace STM32F429ZITx with your chip as listed in `probe-rs chip list`
 runner = "probe-rs run --chip STM32F407VGTx"
 
+# [build]
+# target = "thumbv7em-none-eabihf"
+
 [env]
 DEFMT_LOG = "trace"
