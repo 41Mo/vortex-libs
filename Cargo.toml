@@ -65,6 +65,7 @@ default = [
 ]
 
 f407vg = ["stm32", "embassy-stm32/stm32f407vg"]
+f103c8 = ["stm32", "embassy-stm32/stm32f103c8"]
 
 stm32 = [
   "embassy-stm32",
