@@ -1,7 +1,8 @@
 use embassy_stm32::{bind_interrupts, peripherals, time, usart, Config};
 
-use crate::hal::serial_manager;
-use crate::hal::serial_manager::Protocol;
+use super::*;
+use crate::libs::fmt;
+
 use static_cell::make_static;
 
 bind_interrupts!(struct Irqs {
@@ -10,15 +11,10 @@ bind_interrupts!(struct Irqs {
     USART3 => usart::InterruptHandler<peripherals::USART3>;
 });
 
+
 // struct SerialNoDma<'lt, U: usart::BasicInstance>(usart::Uart<'lt, U>);
-
-struct SerialDma<'lt, U: usart::BasicInstance, DT, DR> {
-    port: usart::Uart<'lt, U, DT, DR>,
-    name: &'lt str,
-    rx_buf: &'lt mut [u8],
-}
-
-// impl<'lt, U: usart::BasicInstance> super::GenericSerialTrait for SerialNoDma<'lt, U> {
+//
+// impl<'lt, U: usart::BasicInstance> GenericSerialTrait for SerialNoDma<'lt, U> {
 //     async fn read(&mut self, _buf: &mut [u8]) -> Result<usize, ()> {
 //         todo!();
 //     }
@@ -29,22 +25,29 @@ struct SerialDma<'lt, U: usart::BasicInstance, DT, DR> {
 //         todo!()
 //     }
 // }
+//
 
-impl<'lt, U: usart::BasicInstance, DT: usart::TxDma<U>, DR: usart::RxDma<U>>
-    super::GenericSerialTrait for SerialDma<'lt, U, DT, DR>
+struct SerialDma<'lt, U: usart::BasicInstance, DT, DR> {
+    port: usart::Uart<'lt, U, DT, DR>,
+    name: &'lt str,
+    rx_buf: &'lt mut [u8],
+}
+
+impl<'lt, U: usart::BasicInstance, DT: usart::TxDma<U>, DR: usart::RxDma<U>> GenericSerialTrait
+    for SerialDma<'lt, U, DT, DR>
 {
     async fn read(&mut self, buf: &mut [u8]) -> Result<usize, ()> {
         self.port
             .read_until_idle(buf)
             .await
-            .map_err(|e| crate::fmt::debug!("{} read err: {}", self.name, e))
+            .map_err(|e| fmt::debug!("{} read err: {}", self.name, e))
     }
 
     async fn write(&mut self, buf: &[u8]) -> Result<usize, ()> {
         self.port
             .write(buf)
             .await
-            .map_err(|e| crate::fmt::debug!("{} write err: {}", self.name, e))?;
+            .map_err(|e| fmt::debug!("{} write err: {}", self.name, e))?;
         Ok(buf.len())
     }
 
@@ -60,16 +63,16 @@ impl<'lt, U: usart::BasicInstance, DT: usart::TxDma<U>, DR: usart::RxDma<U>>
     }
 }
 
-impl super::GenericBoard for super::Board {
+impl GenericBoard for Board {
     fn init() {
         let mut config = Config::default();
         config.rcc.sys_ck = Some(time::Hertz(84_000_000));
         let _ = embassy_stm32::init(config);
-        serial_manager::bind_port(Protocol::Test, init_serial1)
+        serial_manager::bind_port(serial_manager::Protocol::Test, init_serial1)
     }
 }
 
-fn init_serial1(config: serial_manager::Config) -> super::GenericSerial {
+fn init_serial1(config: serial_manager::Config) -> GenericSerial {
     let p = unsafe { embassy_stm32::Peripherals::steal() };
     let uc: usart::Config = config.into();
     let port = usart::Uart::new(p.USART2, p.PA3, p.PA2, Irqs, p.DMA1_CH6, p.DMA1_CH5, uc);

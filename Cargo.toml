@@ -61,7 +61,6 @@ rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
 
 [features]
 default = [
-  # "f407vg", "defmt"
   "std",
 ]
 

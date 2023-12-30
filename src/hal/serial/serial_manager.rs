@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
-use super::GenericSerial;
+use crate::GenericSerial;
 use core::cell::RefCell;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use heapless::Vec;
@@ -69,7 +69,7 @@ pub fn find_by_protocol(protocol: Protocol) -> Option<SerialWrapper> {
     }
 }
 
-pub(super) fn bind_port(protocol: Protocol, initializer: fn(Config) -> GenericSerial) {
+pub(in crate::hal) fn bind_port(protocol: Protocol, initializer: fn(Config) -> GenericSerial) {
     let ports = &SERIAL_MANAGER
         .ports
         .try_lock()
