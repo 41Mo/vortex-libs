@@ -14,21 +14,24 @@ mod libs;
 use hal::*;
 use libs::*;
 
-
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};
-
-#[embassy_executor::task]
-async fn task1() {
-    loop {
-        fmt::info!("Hello from task!");
-        embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
-    }
-}
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     Board::init();
-    fmt::unwrap!(_spawner.spawn(task1()));
-
+    let led = Board::led1();
+    let mut led = match led {
+        Some(l) => l,
+        None => {
+            fmt::error!("board doesn't have led1 defined");
+            return;
+        }
+    };
+    loop {
+        let _ = led.set_high();
+        embassy_time::Timer::after(embassy_time::Duration::from_millis(300)).await;
+        let _ = led.set_low();
+        embassy_time::Timer::after(embassy_time::Duration::from_millis(300)).await;
+    }
 }
