@@ -1,11 +1,14 @@
 [target.thumbv7em-none-eabihf]
-# replace STM32F429ZITx with your chip as listed in `probe-rs chip list`
 runner = "probe-rs run --chip STM32F407VGTx"
+[target.thumbv7em-none-eabi]
+runner = "probe-rs run --chip STM32F103C8Tx"
+[target.thumbv7m-none-eabi]
+runner = "probe-rs run --chip STM32F103C8Tx"
 
-[target.'cfg(all(target_arch = "arm", target_os = "none"))']
-rustflags = [
-  "-C", "linker=flip-link",
-]
+# [target.'cfg(all(target_arch = "arm", target_os = "none"))']
+# rustflags = [
+#   "-C", "linker=flip-link",
+# ]
 
 # [build]
 # target = "thumbv7em-none-eabihf"
