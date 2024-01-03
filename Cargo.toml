@@ -19,6 +19,7 @@ cortex-m = { version = "0.7.6", features = [
 cortex-m-rt = { version = "0.7.0", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 async-io = { version = "1.6.0", optional = true }
+embedded-hal = "0.2.7"
 
 [dependencies.embassy-sync]
 version = "0.3.0"
@@ -33,7 +34,6 @@ features = [
   "nightly",
   "unstable-traits",
   "unstable-pac",
-  "memory-x",
   "time-driver-any",
   "exti",
   "embedded-sdmmc",
@@ -61,7 +61,7 @@ rev = "80d7193b5b7442fb7a9cee00a5a51300778acdcd"
 
 [features]
 default = [
-  "std",
+  "f103c8",
 ]
 
 f407vg = ["stm32", "embassy-stm32/stm32f407vg"]
@@ -70,7 +70,7 @@ f103c8 = ["stm32", "embassy-stm32/stm32f103c8"]
 stm32 = [
   "embassy-stm32",
   "embassy-executor/executor-thread",
-  "embassy-executor/executor-interrupt",
+  # "embassy-executor/executor-interrupt",
   "embassy-executor/integrated-timers",
   "embassy-time/tick-hz-32_768",
   "cortex-m",
@@ -97,23 +97,29 @@ std = [
   "embedded-io-async/std",
 ]
 
+memoryx = [
+  "embassy-stm32/memory-x",
+]
+
+with_bootloader = []
+
 # cargo build/run
-# [profile.dev]
-# codegen-units = 1
-# debug = 2
-# debug-assertions = true # <-
-# incremental = true
-# opt-level = 0           # <-
-# overflow-checks = true  # <-
-# lto = false
-#
-# [profile.dev.package."*"]
-# codegen-units = 1
-# debug = 2
-# debug-assertions = false # <-
-# incremental = true
-# opt-level = "s"          # <-
-# overflow-checks = false  # <-
+[profile.dev]
+codegen-units = 1
+debug = 2
+debug-assertions = true # <-
+incremental = true
+opt-level = 0           # <-
+overflow-checks = true  # <-
+lto = false
+
+[profile.dev.package."*"]
+codegen-units = 1
+debug = 2
+debug-assertions = false # <-
+incremental = true
+opt-level = "s"          # <-
+overflow-checks = false  # <-
 #
 # # cargo build/run --release
 # [profile.release]

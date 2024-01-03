@@ -1,15 +1,48 @@
+use std::env;
+use std::path::PathBuf;
 fn main() {
+    #[cfg(not(feature = "memoryx"))]
+    {
+        let out_dir = env::var_os("OUT_DIR").unwrap();
+        #[cfg(feature = "f103c8")]
+        {
+            let memx_path = String::from("src/hal/boards/memoryx/stm32f103c8");
+            #[cfg(feature = "with_bootloader")]
+            {
+                std::fs::copy(
+                    memx_path+"_memory_bl.x",
+                    std::path::PathBuf::from(out_dir.as_os_str()).join("memory.x"),
+                )
+                .unwrap();
+            }
+            #[cfg(not(feature = "with_bootloader"))]
+            {
+                std::fs::copy(
+                    memx_path+"_memory.x",
+                    std::path::PathBuf::from(out_dir.as_os_str()).join("memory.x"),
+                )
+                .unwrap();
+            }
+        }
 
-    #[cfg(not(feature="std"))]
+        #[cfg(feature = "f407vg")]
+        {
+            panic!("memory.x for board f407vg is not defined")
+        }
+
+        let out = &PathBuf::from(out_dir);
+        println!("cargo:rustc-link-search={}", out.display());
+
+    }
+    #[cfg(not(feature = "std"))]
     {
         println!("cargo:rustc-link-arg-bins=--nmagic");
         println!("cargo:rustc-link-arg-bins=-Tlink.x");
     }
-    #[cfg(feature="defmt")]
+    #[cfg(feature = "defmt")]
     {
         println!("cargo:rustc-link-arg-bins=-Tdefmt.x");
     }
 
-    return
-
+    return;
 }

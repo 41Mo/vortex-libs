@@ -1,0 +1,5 @@
+MEMORY
+{
+RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 20K
+FLASH (rx)      : ORIGIN = 0x8007800, LENGTH = 34K
+}
