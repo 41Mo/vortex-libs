@@ -3,3 +3,5 @@ pub use boards::*;
 
 pub mod serial;
 pub use serial::*;
+
+pub mod gpio;
