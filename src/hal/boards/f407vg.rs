@@ -1,8 +1,12 @@
-use embassy_stm32::{bind_interrupts, peripherals, time, usart, Config};
+use embassy_stm32::{bind_interrupts, peripherals, usart, Config};
 
 use super::*;
+use serial::*;
+use cortex_m::interrupt;
 use crate::libs::fmt;
 
+#[path = "../gpio/dummy_gpio.rs"]
+mod dummy_gpio;
 use static_cell::make_static;
 
 bind_interrupts!(struct Irqs {
@@ -65,8 +69,7 @@ impl<'lt, U: usart::BasicInstance, DT: usart::TxDma<U>, DR: usart::RxDma<U>> Gen
 
 impl GenericBoard for Board {
     fn init() {
-        let mut config = Config::default();
-        config.rcc.sys_ck = Some(time::Hertz(84_000_000));
+        let config = Config::default();
         let _ = embassy_stm32::init(config);
         unsafe {interrupt::enable()};
         serial_manager::bind_port(serial_manager::Protocol::Test, init_serial1);
@@ -76,7 +79,7 @@ impl GenericBoard for Board {
 fn init_serial1(config: serial_manager::Config) -> GenericSerial {
     let p = unsafe { embassy_stm32::Peripherals::steal() };
     let uc: usart::Config = config.into();
-    let port = usart::Uart::new(p.USART2, p.PA3, p.PA2, Irqs, p.DMA1_CH6, p.DMA1_CH5, uc);
+    let port = usart::Uart::new(p.USART2, p.PA3, p.PA2, Irqs, p.DMA1_CH6, p.DMA1_CH5, uc).unwrap();
     let rx_buf = make_static!([0u8; 256]);
 
     SerialDma {
