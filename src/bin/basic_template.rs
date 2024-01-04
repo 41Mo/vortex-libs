@@ -9,24 +9,14 @@ use embassy_time;
 mod hal;
 #[path = "../libs/mod.rs"]
 mod libs;
+
 use hal::*;
 use libs::*;
-
 
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};
 
-#[embassy_executor::task]
-async fn task1() {
-    loop {
-        fmt::info!("Hello from task!");
-        embassy_time::Timer::after(embassy_time::Duration::from_secs(1)).await;
-    }
-}
-
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     Board::init();
-    fmt::unwrap!(_spawner.spawn(task1()));
-
 }

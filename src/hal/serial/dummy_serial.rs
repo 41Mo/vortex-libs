@@ -6,6 +6,7 @@ struct DummySerial();
 struct DummyError();
 
 use crate::hal::*;
+use crate::serial::GenericSerialTrait;
 
 impl GenericSerialTrait for DummySerial {
     fn split(self) -> (impl embedded_io_async::Write, impl embedded_io_async::Read) {

@@ -68,7 +68,8 @@ impl GenericBoard for Board {
         let mut config = Config::default();
         config.rcc.sys_ck = Some(time::Hertz(84_000_000));
         let _ = embassy_stm32::init(config);
-        serial_manager::bind_port(serial_manager::Protocol::Test, init_serial1)
+        unsafe {interrupt::enable()};
+        serial_manager::bind_port(serial_manager::Protocol::Test, init_serial1);
     }
 }
 

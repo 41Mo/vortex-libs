@@ -1,8 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), no_main)]
 #![feature(type_alias_impl_trait)]
-#![feature(async_fn_in_trait)]
-#![feature(return_position_impl_trait_in_trait)]
 
 use embassy_executor::Spawner;
 use embassy_futures::join::join;
@@ -15,6 +13,8 @@ mod libs;
 
 use hal::*;
 use libs::*;
+use serial::serial_manager;
+use serial::GenericSerialTrait;
 
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};

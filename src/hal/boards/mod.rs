@@ -1,6 +1,6 @@
 pub struct Board;
 use super::*;
-pub use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::OutputPin;
 
 #[cfg(feature = "f407vg")]
 mod f407vg;
@@ -12,8 +12,8 @@ mod f103c8;
 mod std;
 
 pub type GenericSerial = impl serial::GenericSerialTrait;
+pub type GpioOutput = impl OutputPin;
 
 pub trait GenericBoard {
     fn init();
-    fn led1() -> Option<impl OutputPin>;
 }
