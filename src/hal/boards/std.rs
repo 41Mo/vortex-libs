@@ -1,11 +1,12 @@
-use super::GenericSerial;
-use super::GenericSerialTrait;
+use crate::hal::*;
+use serial::*;
 use async_io::Async;
 use std::net::UdpSocket;
 use std::sync::Arc;
+use serial::serial_manager::Protocol;
 
-use crate::hal::serial_manager;
-use crate::hal::serial_manager::Protocol;
+#[path = "../gpio/dummy_gpio.rs"]
+mod dummy_gpio;
 
 #[derive(Debug)]
 struct Serial<'a>(Arc<Async<UdpSocket>>, &'a str);
@@ -59,7 +60,7 @@ impl<'a> embedded_io_async::Write for SerialHalve<'a> {
 impl super::GenericBoard for super::Board {
     fn init() {
         let s1 = |_: serial_manager::Config| init_serial("127.0.0.1:25001");
-        crate::serial_manager::bind_port(Protocol::Test, s1);
+        serial_manager::bind_port(Protocol::Test, s1);
     }
 }
 

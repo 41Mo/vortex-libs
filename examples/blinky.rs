@@ -6,9 +6,9 @@ use embassy_executor::Spawner;
 use embassy_time;
 use embedded_hal::digital::v2::OutputPin;
 
-#[path = "../hal/mod.rs"]
+#[path = "../src/hal/mod.rs"]
 mod hal;
-#[path = "../libs/mod.rs"]
+#[path = "../src/libs/mod.rs"]
 mod libs;
 use hal::*;
 use libs::*;

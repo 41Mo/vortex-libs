@@ -6,9 +6,9 @@ use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embedded_io_async::{Read,Write};
 
-#[path = "../hal/mod.rs"]
+#[path = "../src/hal/mod.rs"]
 mod hal;
-#[path = "../libs/mod.rs"]
+#[path = "../src/libs/mod.rs"]
 mod libs;
 
 use hal::*;
