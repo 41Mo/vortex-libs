@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::ops::*;
+use core::ops::*;
 
 pub struct Task<T: Fn()> {
     function: T,
