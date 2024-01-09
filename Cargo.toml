@@ -28,7 +28,7 @@ git = "https://github.com/embassy-rs/embassy.git"
 rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 
 [dependencies.embassy-stm32]
-# version = "^0.1.0"
+version = "0.1.0"
 git = "https://github.com/embassy-rs/embassy.git"
 rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 features = [
@@ -132,7 +132,7 @@ codegen-units = 1
 debug = 2
 debug-assertions = false # <-
 incremental = true
-opt-level = "s"          # <-
+opt-level = "z"          # <-
 overflow-checks = false  # <-
 #
 # # cargo build/run --release
