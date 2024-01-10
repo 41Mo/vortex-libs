@@ -1,9 +1,11 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
-use crate::GenericSerial;
-use core::cell::RefCell;
+use crate::{hal::boards::RunnerFType};
+use core::{cell::RefCell, future::Future};
+use embassy_executor::SpawnToken;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use heapless::Vec;
+use ringbuf::Rb;
 
 const MAX_SERIALNUM: usize = 8;
 
@@ -19,16 +21,15 @@ pub enum Protocol {
 struct SerialManager {
     ports: Mutex<CriticalSectionRawMutex, RefCell<Vec<SerialWrapper, MAX_SERIALNUM>>>,
 }
+pub type SerialPort = ringbuf::StaticConsumer<'static, u8, 512>;
+type SerialPortRbW = ringbuf::StaticProducer<'static, u8, 512>;
+type SerialRingBuf = ringbuf::StaticRb<u8, 512>;
 
 pub struct SerialWrapper {
     protocol: Protocol,
-    initializer: fn(Config) -> GenericSerial,
-}
-
-impl SerialWrapper {
-    pub fn begin(self, cfg: Config) -> GenericSerial {
-        (self.initializer)(cfg)
-    }
+    rb_read_ref: Option<SerialPort>,
+    rb_write_ref: Option<SerialPortRbW>,
+    runner: Option<RunnerFType>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -55,7 +56,25 @@ impl Config {
     }
 }
 
-pub fn find_by_protocol(protocol: Protocol) -> Option<SerialWrapper> {
+pub fn find_port_runner(protocol: Protocol) -> Option<(RunnerFType, ringbuf::Producer<u8, &'static SerialRingBuf>)> {
+    let ports = &SERIAL_MANAGER
+        .ports
+        .try_lock()
+        .expect("SerialManager: lock should never fail");
+    let ports = &mut ports.borrow_mut();
+
+    let protocol = &protocol;
+    match ports.iter().position(|e| e.protocol == *protocol) {
+        Some(n) => {
+            let runner = ports[n].runner.take().unwrap();
+            let rb = ports[n].rb_write_ref.take().unwrap();
+            Some((runner, rb))
+        },
+        None => None,
+    }
+}
+
+pub fn find_by_protocol(protocol: Protocol) -> Option<SerialPort> {
     let ports = &SERIAL_MANAGER
         .ports
         .try_lock()
@@ -64,12 +83,17 @@ pub fn find_by_protocol(protocol: Protocol) -> Option<SerialWrapper> {
 
     let protocol = &protocol;
     match ports.iter().position(|e| e.protocol == *protocol) {
-        Some(n) => Some(ports.remove(n)),
+        Some(n) => ports[n].rb_read_ref.take(),
         None => None,
     }
 }
 
-pub(in crate::hal) fn bind_port(protocol: Protocol, initializer: fn(Config) -> GenericSerial) {
+pub(in crate::hal) fn bind_port(
+    protocol: Protocol,
+    runner: RunnerFType,
+    rb_r: SerialPort,
+    rb_w: SerialPortRbW,
+) {
     let ports = &SERIAL_MANAGER
         .ports
         .try_lock()
@@ -78,7 +102,9 @@ pub(in crate::hal) fn bind_port(protocol: Protocol, initializer: fn(Config) -> G
     if ports
         .push(SerialWrapper {
             protocol,
-            initializer,
+            runner: Some(runner),
+            rb_read_ref: Some(rb_r),
+            rb_write_ref: Some(rb_w)
         })
         .is_err()
     {
@@ -102,7 +128,6 @@ mod tests {
     use super::*;
     use static_cell::make_static;
     use std::ptr::addr_of;
-
 
     #[test]
     fn feels_good() {

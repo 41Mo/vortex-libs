@@ -5,9 +5,9 @@
 use embassy_executor::Spawner;
 use embassy_time;
 
-#[path = "../src/hal/mod.rs"]
+#[path = "../hal/mod.rs"]
 mod hal;
-#[path = "../src/libs/mod.rs"]
+#[path = "../libs/mod.rs"]
 mod libs;
 use hal::*;
 use libs::*;
