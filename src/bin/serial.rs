@@ -31,7 +31,7 @@ impl SerialTask1 {
     }
 }
 
-fn serial_read(_cts: &GlobalContext) {
+fn serial_comm(_cts: &GlobalContext) {
     let (rx, tx) = &mut _cts.serial_task.borrow_mut().port;
     if rx.len() != 0 {
         while let Some(v) = rx.pop() {
@@ -54,7 +54,7 @@ async fn main(_spawner: Spawner) {
         serial_task: SerialTask1::new().into(),
     };
 
-    let serial_task = scheduler::task!(serial_read(&context));
+    let serial_task = scheduler::task!(serial_comm(&context));
     let tasks = [scheduler::Task::new(serial_task, 0.2, "task1")];
 
     const SCHED_LOOP_RATE_HZ: u32 = 100;
