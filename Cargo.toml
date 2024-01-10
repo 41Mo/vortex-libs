@@ -19,8 +19,11 @@ cortex-m = { version = "0.7.6", features = [
 cortex-m-rt = { version = "0.7.0", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 async-io = { version = "1.6.0", optional = true }
-embedded-hal = "0.2.7"
 ringbuf = { version = "0.3.3", default-features = false }
+
+# embedded-hal-async = "1.0.0-rc.3"
+# embedded-hal-nb = "1.0.0-rc.3"
+# embedded-hal = "0.2.6"
 
 [dependencies.embassy-sync]
 version = "0.5.0"
@@ -32,12 +35,9 @@ version = "0.1.0"
 git = "https://github.com/embassy-rs/embassy.git"
 rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 features = [
-  # "nightly",
-  # "unstable-traits",
   "unstable-pac",
   "time-driver-any",
   "exti",
-  # "embedded-sdmmc",
   "chrono",
 ]
 optional = true
@@ -53,7 +53,6 @@ features = ["nightly"]
 version = "0.2.0"
 git = "https://github.com/embassy-rs/embassy.git"
 rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
-# features = ["nightly"]
 
 [dependencies.embassy-futures]
 version = "0.1.0"
@@ -63,9 +62,10 @@ rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 
 [features]
 default = [
-  "std"
-  # "f103c8",
-  # "defmt",
+  # "std"
+  "f103c8",
+  "defmt",
+  "memoryx"
 ]
 
 f407vg = ["stm32", "embassy-stm32/stm32f407vg"]
@@ -107,16 +107,6 @@ memoryx = [
 
 with_bootloader = []
 
-
-[[example]]
-name="blinky"
-
-[[example]]
-name="simple_task"
-
-[[example]]
-name="uart_splitted"
-
 # cargo build/run
 [profile.dev]
 codegen-units = 1
@@ -126,6 +116,14 @@ incremental = true
 opt-level = 0           # <-
 overflow-checks = true  # <-
 lto = false
+
+# [profile.dev.package."embassy-stm32"]
+# codegen-units = 1
+# debug = 2
+# debug-assertions = true # <-
+# incremental = true
+# opt-level = 0           # <-
+# overflow-checks = true  # <-
 
 [profile.dev.package."*"]
 codegen-units = 1

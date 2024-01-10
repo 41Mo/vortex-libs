@@ -1,2 +1,5 @@
 #![allow(unused_imports)]
-pub mod serial_manager;
+mod serial_manager;
+
+// reexport all
+pub use serial_manager::*;

@@ -1,6 +1,5 @@
 #![allow(unused_variables)]
 #![allow(dead_code)]
-use crate::{hal::boards::RunnerFType};
 use core::{cell::RefCell, future::Future};
 use embassy_executor::SpawnToken;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
@@ -21,21 +20,22 @@ pub enum Protocol {
 struct SerialManager {
     ports: Mutex<CriticalSectionRawMutex, RefCell<Vec<SerialWrapper, MAX_SERIALNUM>>>,
 }
-pub type SerialPort = ringbuf::StaticConsumer<'static, u8, 512>;
-type SerialPortRbW = ringbuf::StaticProducer<'static, u8, 512>;
-type SerialRingBuf = ringbuf::StaticRb<u8, 512>;
+const RINGBUF_SIZE:usize = 120;
+pub type SerialPort = ringbuf::StaticConsumer<'static, u8, RINGBUF_SIZE>;
+pub(in crate::hal) type RingBufWriteRef = ringbuf::StaticProducer<'static, u8, RINGBUF_SIZE>;
+pub(in crate::hal) type SerialRingBuf = ringbuf::StaticRb<u8, RINGBUF_SIZE>;
 
-pub struct SerialWrapper {
+struct SerialWrapper {
     protocol: Protocol,
+    port_num: u8,
     rb_read_ref: Option<SerialPort>,
-    rb_write_ref: Option<SerialPortRbW>,
-    runner: Option<RunnerFType>,
+    rb_write_ref: Option<RingBufWriteRef>,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct Config {
-    pub baud: u32,
-    pub swap_rx_tx: bool,
+    baud: u32,
+    swap_rx_tx: bool,
 }
 
 impl Config {
@@ -56,24 +56,6 @@ impl Config {
     }
 }
 
-pub fn find_port_runner(protocol: Protocol) -> Option<(RunnerFType, ringbuf::Producer<u8, &'static SerialRingBuf>)> {
-    let ports = &SERIAL_MANAGER
-        .ports
-        .try_lock()
-        .expect("SerialManager: lock should never fail");
-    let ports = &mut ports.borrow_mut();
-
-    let protocol = &protocol;
-    match ports.iter().position(|e| e.protocol == *protocol) {
-        Some(n) => {
-            let runner = ports[n].runner.take().unwrap();
-            let rb = ports[n].rb_write_ref.take().unwrap();
-            Some((runner, rb))
-        },
-        None => None,
-    }
-}
-
 pub fn find_by_protocol(protocol: Protocol) -> Option<SerialPort> {
     let ports = &SERIAL_MANAGER
         .ports
@@ -88,11 +70,24 @@ pub fn find_by_protocol(protocol: Protocol) -> Option<SerialPort> {
     }
 }
 
+pub(in crate::hal) fn find_write_ref(port_num: u8) -> Option<RingBufWriteRef> {
+    let ports = &SERIAL_MANAGER
+        .ports
+        .try_lock()
+        .expect("SerialManager: lock should never fail");
+    let mut ports = ports.borrow_mut();
+
+    match ports.iter().position(|e| e.port_num == port_num) {
+        Some(n) => ports[n].rb_write_ref.take(),
+        None => None,
+    }
+}
+
 pub(in crate::hal) fn bind_port(
     protocol: Protocol,
-    runner: RunnerFType,
+    port_num: u8,
     rb_r: SerialPort,
-    rb_w: SerialPortRbW,
+    rb_w: RingBufWriteRef,
 ) {
     let ports = &SERIAL_MANAGER
         .ports
@@ -102,7 +97,7 @@ pub(in crate::hal) fn bind_port(
     if ports
         .push(SerialWrapper {
             protocol,
-            runner: Some(runner),
+            port_num,
             rb_read_ref: Some(rb_r),
             rb_write_ref: Some(rb_w)
         })

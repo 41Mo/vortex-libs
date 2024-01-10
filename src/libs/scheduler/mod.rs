@@ -68,6 +68,16 @@ impl<const T: usize, F:Fn()> Scheduler<T, F> {
     }
 }
 
+#[macro_export]
+macro_rules! task {
+    ($fn:expr) => {
+        &(|| {$fn}) as &dyn Fn()
+    }
+}
+
+#[allow(unused)]
+pub use task;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -149,8 +159,8 @@ mod tests {
     #[test]
     fn init() {
         let context = context::GlobalContext::new();
-        let a = &(|| {ins::update(&context)}) as &dyn Fn();
-        let b = &(|| {gps::update(&context)}) as &dyn Fn();
+        let a = task!(ins::update(&context));
+        let b = task!(gps::update(&context));
         let tasks = [
             Task::new(a, 5.0, "task1"),
             Task::new(b, 5.0, "task2"),

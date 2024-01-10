@@ -44,14 +44,12 @@ mod ins {
     use super::fmt;
     // this module should be accesed only in single thread
     pub struct INS {
-        roll: f32,
         pitch: f32,
     }
 
     impl INS {
         pub const fn new() -> Self {
             Self {
-                roll: 0f32,
                 pitch: 0f32,
             }
         }
@@ -70,18 +68,10 @@ mod ins {
 
 mod gps {
     use super::fmt;
-    pub struct GPS {
-        lat: u32,
-        lng: u32,
-    }
-
+    pub struct GPS;
     impl GPS {
         pub const fn new() -> Self {
-            Self { lat: 0, lng: 0 }
-        }
-
-        pub fn gps_get_lat(&self) -> u32 {
-            self.lat
+            Self {}
         }
     }
 
