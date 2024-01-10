@@ -32,14 +32,14 @@ impl SerialTask1 {
 }
 
 fn serial_read(_cts: &GlobalContext) {
-    let serial = &mut _cts.serial_task.borrow_mut().port;
-    if serial.len() == 0 {
-        return;
+    let (rx, tx) = &mut _cts.serial_task.borrow_mut().port;
+    if rx.len() != 0 {
+        while let Some(v) = rx.pop() {
+            fmt::debug!("{}", v)
+        }
     }
 
-    while let Some(v) = serial.pop() {
-        fmt::debug!("{}", v)
-    }
+    core::fmt::Write::write_str(tx, "asd").unwrap();
 }
 
 #[embassy_executor::main]

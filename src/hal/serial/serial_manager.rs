@@ -21,15 +21,18 @@ struct SerialManager {
     ports: Mutex<CriticalSectionRawMutex, RefCell<Vec<SerialWrapper, MAX_SERIALNUM>>>,
 }
 const RINGBUF_SIZE:usize = 120;
-pub type SerialPort = ringbuf::StaticConsumer<'static, u8, RINGBUF_SIZE>;
+pub type SerialPort = (SerialPortReader, SerialPortWriter);
+pub type SerialPortReader = ringbuf::StaticConsumer<'static, u8, RINGBUF_SIZE>;
+pub type SerialPortWriter = ringbuf::StaticProducer<'static, u8, RINGBUF_SIZE>;
 pub(in crate::hal) type RingBufWriteRef = ringbuf::StaticProducer<'static, u8, RINGBUF_SIZE>;
+pub(in crate::hal) type RingBufReadRef = ringbuf::StaticConsumer<'static, u8, RINGBUF_SIZE>;
 pub(in crate::hal) type SerialRingBuf = ringbuf::StaticRb<u8, RINGBUF_SIZE>;
 
 struct SerialWrapper {
     protocol: Protocol,
     port_num: u8,
-    rb_read_ref: Option<SerialPort>,
-    rb_write_ref: Option<RingBufWriteRef>,
+    u_rb: Option<(RingBufReadRef, RingBufWriteRef)>,
+    p_rb: Option<(RingBufReadRef, RingBufWriteRef)>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -65,12 +68,12 @@ pub fn find_by_protocol(protocol: Protocol) -> Option<SerialPort> {
 
     let protocol = &protocol;
     match ports.iter().position(|e| e.protocol == *protocol) {
-        Some(n) => ports[n].rb_read_ref.take(),
+        Some(n) => ports[n].u_rb.take(),
         None => None,
     }
 }
 
-pub(in crate::hal) fn find_write_ref(port_num: u8) -> Option<RingBufWriteRef> {
+pub(in crate::hal) fn find_port_rb_ref(port_num: u8) -> Option<(RingBufReadRef, RingBufWriteRef)> {
     let ports = &SERIAL_MANAGER
         .ports
         .try_lock()
@@ -78,7 +81,7 @@ pub(in crate::hal) fn find_write_ref(port_num: u8) -> Option<RingBufWriteRef> {
     let mut ports = ports.borrow_mut();
 
     match ports.iter().position(|e| e.port_num == port_num) {
-        Some(n) => ports[n].rb_write_ref.take(),
+        Some(n) => ports[n].p_rb.take(),
         None => None,
     }
 }
@@ -86,8 +89,10 @@ pub(in crate::hal) fn find_write_ref(port_num: u8) -> Option<RingBufWriteRef> {
 pub(in crate::hal) fn bind_port(
     protocol: Protocol,
     port_num: u8,
-    rb_r: SerialPort,
-    rb_w: RingBufWriteRef,
+    r_rb_r: RingBufReadRef,
+    r_rb_w: RingBufWriteRef,
+    w_rb_r: RingBufReadRef,
+    w_rb_w: RingBufWriteRef,
 ) {
     let ports = &SERIAL_MANAGER
         .ports
@@ -98,8 +103,8 @@ pub(in crate::hal) fn bind_port(
         .push(SerialWrapper {
             protocol,
             port_num,
-            rb_read_ref: Some(rb_r),
-            rb_write_ref: Some(rb_w)
+            u_rb: Some((r_rb_r, w_rb_w)),
+            p_rb: Some((w_rb_r, r_rb_w)),
         })
         .is_err()
     {
