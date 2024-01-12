@@ -33,6 +33,11 @@ fn main() {
             panic!("memory.x for board f407vg is not defined")
         }
 
+        #[cfg(feature = "h743vi")]
+        {
+            panic!("memory.x for board h743vi is not defined")
+        }
+
         let out = &PathBuf::from(out_dir);
         println!("cargo:rustc-link-search={}", out.display());
 

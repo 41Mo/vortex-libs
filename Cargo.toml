@@ -9,6 +9,13 @@ edition = "2021"
 static_cell = { version = "1.1", features = ["nightly"] }
 embedded-io-async = { version = "0.6.1" }
 heapless = "0.7.16"
+embedded-hal = "1.0.0-rc.3"
+embedded-hal-02 = { package = "embedded-hal", version = "0.2.6" }
+nb = "0.1.3"
+mavlink = { version = "0.12.2", features = ["embedded", "ardupilotmega"], default-features = false }
+
+# embedded-hal-async = "1.0.0-rc.3"
+# embedded-hal-nb = "1.0.0-rc.3"
 
 defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
@@ -21,9 +28,12 @@ panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 async-io = { version = "1.6.0", optional = true }
 ringbuf = { version = "0.3.3", default-features = false }
 
-# embedded-hal-async = "1.0.0-rc.3"
-# embedded-hal-nb = "1.0.0-rc.3"
-# embedded-hal = "0.2.6"
+
+icm42688 = { version = "*", path = "src/libs/icm42688", features = [
+  "async",
+], optional = true }
+nalgebra = { version = "0.32.3", default-features = false, optional = true }
+micromath = { version = "2.1.0", optional = true }
 
 [dependencies.embassy-sync]
 version = "0.5.0"
@@ -34,12 +44,7 @@ rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 version = "0.1.0"
 git = "https://github.com/embassy-rs/embassy.git"
 rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
-features = [
-  "unstable-pac",
-  "time-driver-any",
-  "exti",
-  "chrono",
-]
+features = ["unstable-pac", "time-driver-any", "exti", "chrono"]
 optional = true
 
 
@@ -59,17 +64,28 @@ version = "0.1.0"
 git = "https://github.com/embassy-rs/embassy.git"
 rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 
+[dependencies.embassy-usb]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+
+[dependencies.embassy-embedded-hal]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+
 
 [features]
 default = [
   # "std"
-  "f103c8",
+  "h743vi",
   "defmt",
-  "memoryx"
+  "memoryx",
 ]
 
 f407vg = ["stm32", "embassy-stm32/stm32f407vg"]
 f103c8 = ["stm32", "embassy-stm32/stm32f103c8"]
+h743vi = ["stm32", "embassy-stm32/stm32h743vi", "nalgebra", "icm42688", "micromath"]
 
 stm32 = [
   "embassy-stm32",
@@ -88,6 +104,7 @@ defmt = [
   "panic-probe",
   "embassy-executor/defmt",
   "embassy-stm32/defmt",
+  # "embassy-usb/defmt",
 ]
 
 std = [
@@ -101,9 +118,7 @@ std = [
   "embedded-io-async/std",
 ]
 
-memoryx = [
-  "embassy-stm32/memory-x",
-]
+memoryx = ["embassy-stm32/memory-x"]
 
 with_bootloader = []
 
