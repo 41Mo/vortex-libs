@@ -153,6 +153,7 @@ impl GcsMavlink {
             match self.message_rates[i].0 {
                 MSGID::HEARTBEAT => self.send_heatbeat(),
                 MSGID::ATTITUDE => self.send_attitude(tnow.as_millis(), ins),
+                #[allow(unreachable_patterns)]
                 _ => (),
             }
             self.last_update_time[i] = tnow;
@@ -255,8 +256,10 @@ fn get_angles(dcm: &nalgebra::Matrix3<f32>) -> (f32, f32, f32) {
     (roll, pitch, yaw)
 }
 
+#[allow(dead_code)]
 const TO_DEG: f32 = 180.0 / 3.1415926;
 
+#[allow(dead_code)]
 fn to_deg(mut a_rad: (f32, f32, f32)) -> (f32, f32, f32) {
     a_rad.0 *= TO_DEG;
     a_rad.1 *= TO_DEG;
