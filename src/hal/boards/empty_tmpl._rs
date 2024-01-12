@@ -1,0 +1,14 @@
+use crate::hal::serial;
+use crate::hal::*;
+use crate::libs::fmt;
+
+impl super::GenericBoard for super::Board {
+    fn init() {}
+}
+
+pub mod hw_tasks {
+    use super::*;
+    #[embassy_executor::task]
+    pub async fn serial1_runner(cfg: serial::Config) {}
+}
+

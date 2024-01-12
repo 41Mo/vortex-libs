@@ -20,18 +20,67 @@ pub enum Protocol {
 struct SerialManager {
     ports: Mutex<CriticalSectionRawMutex, RefCell<Vec<SerialWrapper, MAX_SERIALNUM>>>,
 }
-const RINGBUF_SIZE:usize = 120;
-pub type SerialPort = (SerialPortReader, SerialPortWriter);
-pub type SerialPortReader = ringbuf::StaticConsumer<'static, u8, RINGBUF_SIZE>;
-pub type SerialPortWriter = ringbuf::StaticProducer<'static, u8, RINGBUF_SIZE>;
+const RINGBUF_SIZE: usize = 300;
 pub(in crate::hal) type RingBufWriteRef = ringbuf::StaticProducer<'static, u8, RINGBUF_SIZE>;
 pub(in crate::hal) type RingBufReadRef = ringbuf::StaticConsumer<'static, u8, RINGBUF_SIZE>;
 pub(in crate::hal) type SerialRingBuf = ringbuf::StaticRb<u8, RINGBUF_SIZE>;
 
+pub struct SerialPort {
+    reader: RingBufReadRef,
+    writer: RingBufWriteRef,
+}
+
+impl embedded_hal_02::serial::Read<u8> for SerialPort {
+    type Error = Error;
+    fn read(&mut self) -> nb::Result<u8, Self::Error> {
+        if self.reader.len() == 0 {
+            return Err(nb::Error::Other(Error::NoData));
+        }
+        Ok(self.reader.pop().unwrap())
+    }
+}
+
+impl embedded_hal_02::serial::Write<u8> for SerialPort {
+    type Error = Error;
+
+    fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
+        self.writer
+            .push(word)
+            .map_err(|e| nb::Error::Other(Error::BufferFull))
+    }
+
+    fn flush(&mut self) -> nb::Result<(), Self::Error> {
+        todo!()
+    }
+}
+
+impl SerialPort {
+    pub fn available(&self) -> usize {
+        self.reader.len()
+    }
+    pub fn read(&mut self) -> Option<u8> {
+        self.reader.pop()
+    }
+    pub fn write(&mut self, byte:u8) -> Result<(), ()> {
+        self.writer.push(byte).map_err(|e| ())
+    }
+    pub fn write_slice(&mut self, bytes: &[u8]) -> Result<(), ()> {
+        if self.writer.push_slice(bytes) < bytes.len() {
+            return Err(())
+        }
+        Ok(())
+    }
+}
+
+pub enum Error {
+    NoData,
+    BufferFull,
+}
+
 struct SerialWrapper {
     protocol: Protocol,
     port_num: u8,
-    u_rb: Option<(RingBufReadRef, RingBufWriteRef)>,
+    u_rb: Option<SerialPort>,
     p_rb: Option<(RingBufReadRef, RingBufWriteRef)>,
 }
 
@@ -103,7 +152,10 @@ pub(in crate::hal) fn bind_port(
         .push(SerialWrapper {
             protocol,
             port_num,
-            u_rb: Some((r_rb_r, w_rb_w)),
+            u_rb: Some(SerialPort {
+                reader: r_rb_r,
+                writer: w_rb_w,
+            }),
             p_rb: Some((w_rb_r, r_rb_w)),
         })
         .is_err()
