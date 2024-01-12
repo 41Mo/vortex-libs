@@ -36,6 +36,21 @@ macro_rules! debug {
 
 pub(crate) use debug;
 
+macro_rules! display_debug {
+    ($s:literal $(, $x:expr)* $(,)?) => {
+        {
+            #[cfg(feature = "defmt")]
+            {
+                let mut string = heapless::String::<256>::new();
+                core::fmt::write(&mut string, format_args!($s $(, $x)*)).unwrap();
+                ::defmt::debug!("{}", string.as_str());
+            }
+        }
+    };
+}
+
+pub(crate) use display_debug;
+
 macro_rules! info {
     ($s:literal $(, $x:expr)* $(,)?) => {
         {
