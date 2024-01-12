@@ -1,0 +1,16 @@
+[package]
+name = "icm42688"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+embedded-hal = { version = "1.0.0-rc.3", optional = true }
+embedded-hal-async = { version = "1.0.0-rc.3", optional = true }
+nalgebra = { version = "0.32.3", default-features = false }
+
+[features]
+default = ["async"]
+blocking = ["embedded-hal"]
+async = ["embedded-hal-async"]
