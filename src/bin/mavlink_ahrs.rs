@@ -86,7 +86,7 @@ impl Into<u32> for MSGID {
 
 impl GcsMavlink {
     fn new() -> Self {
-        let port = serial::find_by_protocol(serial::Protocol::Test).unwrap();
+        let port = serial::find_by_protocol(serial::Protocol::MavlinkV2).unwrap();
         Self {
             port,
             mav_header: mavlink::MavHeader {

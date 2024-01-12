@@ -88,7 +88,7 @@ fn serial1_bind() {
         static_cell::make_static!(ringbuf::StaticRb::default());
     let (p1, c1) = sc1.split_ref();
     let (p2, c2) = sc2.split_ref();
-    serial::bind_port(serial::Protocol::Test, 1, c1, p1, c2, p2);
+    serial::bind_port(serial::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
 }
 
 fn serial0_bind() {
@@ -99,7 +99,7 @@ fn serial0_bind() {
         static_cell::make_static!(ringbuf::StaticRb::default());
     let (p1, c1) = sc1.split_ref();
     let (p2, c2) = sc2.split_ref();
-    serial::bind_port(serial::Protocol::Test, 0, c1, p1, c2, p2);
+    serial::bind_port(serial::Protocol::MavlinkV2, 0, c1, p1, c2, p2);
 }
 
 pub mod hw_tasks {

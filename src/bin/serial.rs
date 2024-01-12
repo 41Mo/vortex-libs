@@ -26,7 +26,7 @@ struct SerialTask1 {
 
 impl SerialTask1 {
     fn new() -> Self {
-        let port = serial::find_by_protocol(serial::Protocol::Test).unwrap();
+        let port = serial::find_by_protocol(serial::Protocol::MavlinkV2).unwrap();
         Self { port }
     }
 }

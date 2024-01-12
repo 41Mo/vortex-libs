@@ -14,7 +14,7 @@ static SERIAL_MANAGER: SerialManager = SerialManager {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Protocol {
-    Test,
+    MavlinkV2,
 }
 
 struct SerialManager {
