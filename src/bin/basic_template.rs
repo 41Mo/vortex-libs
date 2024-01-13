@@ -7,12 +7,12 @@
 
 use embassy_executor::Spawner;
 
-#[path = "../hal/mod.rs"]
-mod hal;
+#[path = "../bsp/mod.rs"]
+mod bsp;
 #[path = "../libs/mod.rs"]
 mod libs;
 
-use hal::*;
+use bsp::*;
 use libs::*;
 
 #[cfg(feature = "defmt")]

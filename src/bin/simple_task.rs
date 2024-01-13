@@ -5,11 +5,11 @@
 use embassy_executor::Spawner;
 use embassy_time;
 
-#[path = "../hal/mod.rs"]
-mod hal;
+#[path = "../bsp/mod.rs"]
+mod bsp;
+use bsp::*;
 #[path = "../libs/mod.rs"]
 mod libs;
-use hal::*;
 use libs::*;
 
 #[cfg(feature = "defmt")]

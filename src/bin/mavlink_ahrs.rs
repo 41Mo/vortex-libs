@@ -6,11 +6,11 @@ use core::cell::RefCell;
 use embassy_executor::Spawner;
 use embassy_time;
 
-#[path = "../hal/mod.rs"]
-mod hal;
+#[path = "../bsp/mod.rs"]
+mod bsp;
 #[path = "../libs/mod.rs"]
 mod libs;
-use hal::{Board, GenericBoard};
+use bsp::{Board, GenericBoard, boards};
 use libs::*;
 use serial_manager as serial;
 
@@ -41,14 +41,14 @@ async fn main(_spawner: Spawner) {
     // fmt::unwrap!(_spawner.spawn(hal::boards::serial1_runner(
     //     hal::serial::Config::default().baud(115_200)
     // )));
-    fmt::unwrap!(_spawner.spawn(hal::boards::serial0_runner(serial::Config::default())));
+    fmt::unwrap!(_spawner.spawn(boards::serial0_runner(serial::Config::default())));
 
     let ringbuf = static_cell::make_static!(ringbuf::StaticRb::<
         (nalgebra::Vector3<f32>, nalgebra::Vector3<f32>),
         5,
     >::default());
     let (prod, con) = ringbuf.split_ref();
-    fmt::unwrap!(_spawner.spawn(hal::boards::imu_task(prod)));
+    fmt::unwrap!(_spawner.spawn(boards::imu_task(prod)));
 
     let context = GlobalContext {
         gcs: gcs::GcsMavlink::new().into(),

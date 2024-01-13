@@ -6,11 +6,11 @@ use core::cell::RefCell;
 use embassy_executor::Spawner;
 use embassy_time;
 
-#[path = "../hal/mod.rs"]
-mod hal;
+#[path = "../bsp/mod.rs"]
+mod bsp;
 #[path = "../libs/mod.rs"]
 mod libs;
-use hal::{Board, GenericBoard};
+use bsp::{Board, GenericBoard, boards};
 use libs::*;
 use serial_manager as serial;
 
@@ -48,7 +48,7 @@ fn serial_comm(_cts: &GlobalContext) {
 async fn main(_spawner: Spawner) {
     Board::init();
 
-    fmt::unwrap!(_spawner.spawn(hal::boards::serial1_runner(
+    fmt::unwrap!(_spawner.spawn(boards::serial1_runner(
         serial::Config::default().baud(115_200)
     )));
 
