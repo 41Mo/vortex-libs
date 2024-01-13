@@ -12,6 +12,7 @@ mod hal;
 mod libs;
 use hal::{Board, GenericBoard};
 use libs::*;
+use serial_manager as serial;
 
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};
@@ -40,7 +41,7 @@ async fn main(_spawner: Spawner) {
     // fmt::unwrap!(_spawner.spawn(hal::boards::serial1_runner(
     //     hal::serial::Config::default().baud(115_200)
     // )));
-    fmt::unwrap!(_spawner.spawn(hal::boards::serial0_runner(hal::serial::Config::default())));
+    fmt::unwrap!(_spawner.spawn(hal::boards::serial0_runner(serial::Config::default())));
 
     let ringbuf = static_cell::make_static!(ringbuf::StaticRb::<
         (nalgebra::Vector3<f32>, nalgebra::Vector3<f32>),

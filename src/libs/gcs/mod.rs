@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 use mavlink;
 use crate::libs::ins::INS;
-use crate::hal::serial;
 use crate::fmt;
+use serial_manager as serial;
 
 pub struct GcsMavlink {
     port: serial::SerialPort,

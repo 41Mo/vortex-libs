@@ -1,7 +1,7 @@
-use crate::hal::serial;
 use crate::libs::fmt;
 use cortex_m::interrupt;
 use embassy_stm32::{bind_interrupts, peripherals, time, usart, usb_otg};
+use serial_manager::{self};
 
 bind_interrupts!(struct Irqs {
     UART7 => usart::InterruptHandler<peripherals::UART7>;
@@ -81,25 +81,25 @@ impl super::GenericBoard for super::Board {
 }
 
 fn serial1_bind() {
-    let sc1: &'static mut serial::SerialRingBuf =
+    let sc1: &'static mut serial_manager::SerialRingBuf =
         static_cell::make_static!(ringbuf::StaticRb::default());
 
-    let sc2: &'static mut serial::SerialRingBuf =
+    let sc2: &'static mut serial_manager::SerialRingBuf =
         static_cell::make_static!(ringbuf::StaticRb::default());
     let (p1, c1) = sc1.split_ref();
     let (p2, c2) = sc2.split_ref();
-    serial::bind_port(serial::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
+    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
 }
 
 fn serial0_bind() {
-    let sc1: &'static mut serial::SerialRingBuf =
+    let sc1: &'static mut serial_manager::SerialRingBuf =
         static_cell::make_static!(ringbuf::StaticRb::default());
 
-    let sc2: &'static mut serial::SerialRingBuf =
+    let sc2: &'static mut serial_manager::SerialRingBuf =
         static_cell::make_static!(ringbuf::StaticRb::default());
     let (p1, c1) = sc1.split_ref();
     let (p2, c2) = sc2.split_ref();
-    serial::bind_port(serial::Protocol::MavlinkV2, 0, c1, p1, c2, p2);
+    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 0, c1, p1, c2, p2);
 }
 
 pub mod hw_tasks {
@@ -112,7 +112,7 @@ pub mod hw_tasks {
     #[allow(unused)]
     async fn port_read<T: usart::BasicInstance, R: usart::RxDma<T>>(
         mut port: usart::UartRx<'_, T, R>,
-        mut rb_producer: serial::RingBufWriteRef,
+        mut rb_producer: serial_manager::RingBufWriteRef,
         name: &str,
     ) {
         let mut buf = [0u8; 100];
@@ -134,7 +134,7 @@ pub mod hw_tasks {
     #[allow(unused)]
     async fn port_write<T: usart::BasicInstance, R: usart::TxDma<T>>(
         mut port: usart::UartTx<'_, T, R>,
-        mut consumer: serial::RingBufReadRef,
+        mut consumer: serial_manager::RingBufReadRef,
         name: &str,
     ) {
         let mut buf = [0u8; 100];
@@ -154,9 +154,9 @@ pub mod hw_tasks {
     }
 
     #[embassy_executor::task]
-    pub async fn serial0_runner(_cfg: serial::Config) {
+    pub async fn serial0_runner(_cfg: serial_manager::Config) {
         let p = unsafe { embassy_stm32::Peripherals::steal() };
-        let (mut consumer, mut producer) = fmt::unwrap!(serial::find_port_rb_ref(0));
+        let (mut consumer, mut producer) = fmt::unwrap!(serial_manager::find_port_rb_ref(0));
 
         let name = "Serial0";
 
@@ -262,14 +262,15 @@ pub mod hw_tasks {
     }
 
     #[embassy_executor::task]
-    pub async fn serial1_runner(cfg: serial::Config) {
-        let uc: usart::Config = cfg.into();
+    pub async fn serial1_runner(cfg: serial_manager::Config) {
+        let mut uc = usart::Config::default();
+        uc.baudrate = cfg.baud;
 
         let p = unsafe { embassy_stm32::Peripherals::steal() };
         let port = fmt::unwrap!(usart::Uart::new(
             p.UART7, p.PE7, p.PE8, Irqs, p.DMA1_CH0, p.DMA1_CH1, uc
         ));
-        let (consumer, producer) = fmt::unwrap!(serial::find_port_rb_ref(1));
+        let (consumer, producer) = fmt::unwrap!(serial_manager::find_port_rb_ref(1));
 
         let (tx, rx) = port.split();
         let name = "Serial1";

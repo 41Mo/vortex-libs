@@ -10,8 +10,9 @@ use embassy_time;
 mod hal;
 #[path = "../libs/mod.rs"]
 mod libs;
-use hal::{serial, Board, GenericBoard};
+use hal::{Board, GenericBoard};
 use libs::*;
+use serial_manager as serial;
 
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};
@@ -48,7 +49,7 @@ async fn main(_spawner: Spawner) {
     Board::init();
 
     fmt::unwrap!(_spawner.spawn(hal::boards::serial1_runner(
-        hal::serial::Config::default().baud(115_200)
+        serial::Config::default().baud(115_200)
     )));
 
     let context = GlobalContext {
