@@ -113,11 +113,3 @@ pub mod hw_tasks {
     }
 }
 
-#[cfg(not(feature = "defmt"))]
-mod nondefmt {
-    use core::panic::PanicInfo;
-    #[panic_handler]
-    fn panic(_info: &PanicInfo) -> ! {
-        loop {}
-    }
-}

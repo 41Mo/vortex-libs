@@ -34,7 +34,7 @@ default = [
   "h743vi",
   # "f103c8",
   # "std"
-  # "defmt",
+  "defmt",
 ]
 
 stm32 = ["cortex-m-rt", "embassy-executor/arch-cortex-m", "bsp/memoryx"]

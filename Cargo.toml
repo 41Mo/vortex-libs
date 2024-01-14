@@ -37,7 +37,7 @@ lto = false
 [profile.dev.package."*"]
 codegen-units = 1
 debug = 2
-debug-assertions = false # <-
+debug-assertions = true # <-
 incremental = true
 opt-level = "z"          # <-
 overflow-checks = false  # <-
