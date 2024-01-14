@@ -8,6 +8,7 @@
 use embassy_executor::Spawner;
 
 use bsp::*;
+mod fmt;
 
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};
@@ -18,8 +19,7 @@ async fn main(_spawner: Spawner) {
     Board::init();
 
     loop {
-        // defmt::debug!("asd");
-        // println!("asd");
+        fmt::info!("Hello World!");
         embassy_time::Timer::after_secs(1).await;
     }
 }

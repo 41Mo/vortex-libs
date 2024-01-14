@@ -87,20 +87,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "basic-template"
-version = "0.1.0"
-dependencies = [
- "bsp",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "embassy-executor",
- "embassy-futures",
- "embassy-time",
- "panic-probe",
-]
-
-[[package]]
 name = "bit_field"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -468,6 +454,16 @@ dependencies = [
 [[package]]
 name = "embassy-template"
 version = "0.1.0"
+dependencies = [
+ "bsp",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-time",
+ "panic-probe",
+]
 
 [[package]]
 name = "embassy-time"
