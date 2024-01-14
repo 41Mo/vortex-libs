@@ -11,8 +11,8 @@ defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
-bsp = { version = "*", path = "../../src/bsp" }
-scheduler = { version = "*", path="../../src/libs/scheduler"}
+bsp = { version = "*", path = "../../bsp" }
+scheduler = { version = "*", path="../../libraries/scheduler"}
 
 [dependencies.embassy-executor]
 version = "0.4.0"

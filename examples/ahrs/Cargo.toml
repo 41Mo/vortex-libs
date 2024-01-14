@@ -21,9 +21,9 @@ mavlink = { version = "0.12.2", features = [
 heapless = "0.7.16"
 micromath = { version = "2.1.0" }
 
-bsp = { version = "*", path = "../../src/bsp" }
-scheduler = { version = "*", path="../../src/libs/scheduler"}
-serial-manager = { version = "*", path="../../src/libs/serial-manager"}
+bsp = { version = "*", path = "../../bsp" }
+scheduler = { version = "*", path="../../libraries/scheduler"}
+serial-manager = { version = "*", path="../../libraries/serial-manager"}
 
 [dependencies.embassy-executor]
 version = "0.4.0"

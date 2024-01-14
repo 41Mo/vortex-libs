@@ -11,7 +11,7 @@ defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
-bsp = { version = "*", path = "../../src/bsp" }
+bsp = { version = "*", path = "../../bsp" }
 
 [dependencies.embassy-executor]
 version = "0.4.0"
