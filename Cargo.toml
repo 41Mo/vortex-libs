@@ -41,9 +41,9 @@ rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 [features]
 default = [
   "h743vi",
+  "defmt",
   # "f103c8",
   # "std"
-  "defmt",
 ]
 
 stm32 = ["cortex-m-rt", "embassy-executor/arch-cortex-m", "bsp/memoryx"]

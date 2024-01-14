@@ -6,7 +6,7 @@ use core::cell::RefCell;
 use embassy_executor::Spawner;
 use embassy_time;
 
-use bsp::{Board, GenericBoard, serial1_runner, serial0_runner};
+use bsp::{Board, GenericBoard, serial0_runner};
 use serial_manager as serial;
 mod fmt;
 

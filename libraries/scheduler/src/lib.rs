@@ -3,20 +3,20 @@ use core::ops::*;
 
 pub struct Task<T: Fn()> {
     function: T,
-    name: &'static str,
     rate_hz: f32,
-    max_time_micros: u16,
-    priority: u8,
+    // priority: u8,
+    // name: &'static str,
+    // max_time_micros: u16,
 }
 
 impl<T: Fn()> Task<T> {
-    pub fn new(function: T, rate_hz: f32, name: &'static str) -> Self {
+    pub fn new(function: T, rate_hz: f32, _name: &'static str) -> Self {
         Task {
             function,
             rate_hz,
-            name,
-            max_time_micros: 0,
-            priority: 0,
+            // priority: 0,
+            // name,
+            // max_time_micros: 0,
         }
     }
 }
@@ -28,7 +28,7 @@ pub struct Scheduler<const T: usize, F: Fn()> {
     loop_rate_hz: u32,
     loop_period_us: u32,
     task_time_allowed: u32,
-    task_time_started: u32,
+    // task_time_started: u32,
 }
 
 impl<const T: usize, F:Fn()> Scheduler<T, F> {
@@ -38,9 +38,9 @@ impl<const T: usize, F:Fn()> Scheduler<T, F> {
             last_run: [0; T],
             tick_counter: 0,
             loop_period_us: 1000000u32 / loop_rate_hz,
-            task_time_started: 0,
             task_time_allowed: 0,
             loop_rate_hz,
+            // task_time_started: 0,
         }
     }
 
