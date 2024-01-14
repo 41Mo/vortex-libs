@@ -1,3 +1,4 @@
+#![no_std]
 #![allow(dead_code)]
 use core::ops::*;
 
@@ -75,13 +76,12 @@ macro_rules! task {
     }
 }
 
-#[allow(unused)]
-pub use task;
+// #[allow(unused)]
+// pub use task;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fmt;
 
     mod context {
         use core::cell::RefCell;
@@ -102,7 +102,6 @@ mod tests {
     }
 
     mod ins {
-        use super::fmt;
         // this module should be accesed only in single thread
         pub struct INS {
             roll: f32,
@@ -123,14 +122,13 @@ mod tests {
         }
 
         pub fn update(_ctx: &super::context::GlobalContext) {
-            fmt::info!("INS update");
+            println!("INS update");
             let mut ins = _ctx.ins.borrow_mut();
             ins.pitch += 1f32;
         }
     }
 
     mod gps {
-        use super::fmt;
         pub struct GPS {
             lat: u32,
             lng: u32,
@@ -147,9 +145,9 @@ mod tests {
         }
 
         pub fn update(_ctx: &super::context::GlobalContext) {
-            fmt::info!("GPS update");
+            println!("GPS update");
             let ins = _ctx.ins.borrow();
-            fmt::info!("ins pitch {}", ins.get_pitch_cd());
+            println!("ins pitch {}", ins.get_pitch_cd());
         }
 
     }

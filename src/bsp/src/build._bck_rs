@@ -4,6 +4,7 @@
 use std::env;
 use std::path::PathBuf;
 fn main() {
+    #[cfg(not)]
     #[cfg(not(feature = "memoryx"))]
     {
         let out_dir = env::var_os("OUT_DIR").unwrap();

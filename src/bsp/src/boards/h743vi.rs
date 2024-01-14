@@ -1,4 +1,4 @@
-use crate::libs::fmt;
+use super::fmt;
 use cortex_m::interrupt;
 use embassy_stm32::{bind_interrupts, peripherals, time, usart, usb_otg};
 use serial_manager::{self};
@@ -103,7 +103,6 @@ fn serial0_bind() {
 }
 
 pub mod hw_tasks {
-    use embassy_stm32::spi;
     use embassy_usb::driver::EndpointError;
     use embedded_io_async::Write;
 
@@ -145,7 +144,7 @@ pub mod hw_tasks {
             }
 
             let amt = consumer.pop_slice(&mut buf);
-            defmt::debug!("{} writing len bytes {}", name, amt);
+            fmt::debug!("{} writing len bytes {}", name, amt);
             let _ = port
                 .write_all(&buf[..amt])
                 .await
@@ -281,6 +280,7 @@ pub mod hw_tasks {
         embassy_futures::join::join(reader, writer).await;
     }
 
+    #[cfg(feature="h743vi_imu")]
     #[embassy_executor::task]
     pub async fn imu_task(
         mut rb: ringbuf::StaticProducer<
@@ -289,6 +289,7 @@ pub mod hw_tasks {
             5,
         >,
     ) {
+        use embassy_stm32::spi;
         use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
         use embassy_sync::blocking_mutex::raw::NoopRawMutex;
         use embassy_sync::mutex::Mutex;
@@ -377,7 +378,8 @@ pub mod hw_tasks {
     }
 }
 
-#[cfg(not(feature = "defmt"))]
+// #[cfg(not(feature = "defmt"))]
+#[cfg(not(debug_assertions))]
 mod nondefmt {
     use core::panic::PanicInfo;
     #[panic_handler]

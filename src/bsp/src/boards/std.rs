@@ -1,7 +1,6 @@
 #![allow(unused)]
-use crate::hal::serial;
-use crate::hal::*;
-use crate::libs::fmt;
+use serial_manager as serial;
+use crate::fmt;
 use async_io::Async;
 use serial::*;
 use std::net::UdpSocket;

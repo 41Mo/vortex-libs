@@ -1,0 +1,118 @@
+[package]
+name = "bsp"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+embedded-io-async = { version = "0.6.1" }
+static_cell = { version = "1.1", features = ["nightly"] }
+ringbuf = { version = "0.3.3", default-features = false }
+
+defmt = { version = "0.3", optional = true }
+defmt-rtt = { version = "0.4", optional = true }
+cortex-m = { version = "0.7.6", features = [
+  "inline-asm",
+  "critical-section-single-core",
+], optional = true }
+cortex-m-rt = { version = "0.7.0", optional = true }
+panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
+async-io = { version = "1.6.0", optional = true }
+nalgebra = { version = "0.32.3", default-features = false, optional = true }
+
+serial-manager = { version = "*", path = "../libs/serial-manager" }
+icm42688 = { version = "*", path = "../libs/icm42688", features = [
+  "async",
+], optional = true }
+
+[dependencies.embassy-sync]
+version = "0.5.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+
+[dependencies.embassy-stm32]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+features = ["unstable-pac", "time-driver-any", "exti", "chrono"]
+optional = true
+
+[dependencies.embassy-executor]
+version = "0.4.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+features = ["nightly"]
+
+[dependencies.embassy-time]
+version = "0.2.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+
+[dependencies.embassy-futures]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+
+[dependencies.embassy-usb]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+
+[dependencies.embassy-embedded-hal]
+version = "0.1.0"
+git = "https://github.com/embassy-rs/embassy.git"
+rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+
+[features]
+default = [
+  # "h743vi"
+]
+
+stm32 = [
+  "embassy-stm32",
+  "embassy-executor/executor-thread",
+  "embassy-executor/integrated-timers",
+  "embassy-time/tick-hz-32_768",
+  "cortex-m",
+  "cortex-m-rt",
+  "embassy-executor/arch-cortex-m",
+  # "embassy-executor/executor-interrupt",
+]
+
+defmt = [
+  "dep:defmt",
+  "defmt-rtt",
+  "panic-probe",
+  "embassy-executor/defmt",
+  "embassy-stm32/defmt",
+  # "embassy-usb/defmt",
+]
+
+f103c8 = ["stm32", "embassy-stm32/stm32f103c8"]
+
+h743vi = [
+  "stm32",
+  "embassy-stm32/stm32h743vi",
+  # "nalgebra",
+  # "icm42688",
+  # "micromath",
+  # "mavlink",
+]
+
+h743vi_imu = ["nalgebra", "icm42688"]
+
+matek_h743 = ["h743vi", "h743vi_imu"]
+
+std = [
+  "embassy-executor/arch-std",
+  "embassy-executor/executor-thread",
+  "embassy-executor/log",
+  "embassy-executor/integrated-timers",
+  "embassy-time/log",
+  "embassy-time/std",
+  "async-io",
+  "embedded-io-async/std",
+]
+
+memoryx = ["embassy-stm32/memory-x"]

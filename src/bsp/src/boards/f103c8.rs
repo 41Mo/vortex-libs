@@ -1,5 +1,5 @@
-use crate::hal::serial;
-use crate::libs::fmt;
+use serial_manager as serial;
+use crate::fmt;
 use cortex_m::interrupt;
 use embassy_stm32::{bind_interrupts, peripherals, time, usart, Config};
 
@@ -40,7 +40,7 @@ fn serial1_bind() {
         static_cell::make_static!(ringbuf::StaticRb::default());
     let (p1, c1) = sc1.split_ref();
     let (p2, c2) = sc2.split_ref();
-    serial::bind_port(serial::Protocol::Test, 1, c1, p1, c2, p2);
+    serial::bind_port(serial::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
 }
 
 pub mod hw_tasks {
@@ -94,7 +94,8 @@ pub mod hw_tasks {
 
     #[embassy_executor::task]
     pub async fn serial1_runner(cfg: serial::Config) {
-        let uc: usart::Config = cfg.into();
+        let mut uc = usart::Config::default();
+        uc.baudrate = cfg.baud;
 
         let p = unsafe { embassy_stm32::Peripherals::steal() };
         let port = fmt::unwrap!(usart::Uart::new(
