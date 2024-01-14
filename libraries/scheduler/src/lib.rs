@@ -1,5 +1,4 @@
 #![no_std]
-#![allow(dead_code)]
 use core::ops::*;
 
 pub struct Task<T: Fn()> {

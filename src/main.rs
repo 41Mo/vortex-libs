@@ -1,9 +1,6 @@
-#![allow(unused)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), no_main)]
 #![feature(type_alias_impl_trait)]
-#![feature(generic_arg_infer)]
-#![feature(const_mut_refs)]
 
 use embassy_executor::Spawner;
 

@@ -1,7 +1,7 @@
 #![no_std]
+
 #[cfg(feature = "blocking")]
 use embedded_hal as hal;
-
 #[cfg(feature = "async")]
 use embedded_hal_async as hal;
 
