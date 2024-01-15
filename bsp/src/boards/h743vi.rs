@@ -282,17 +282,13 @@ pub mod hw_tasks {
 
     #[cfg(feature="h743vi_imu")]
     #[embassy_executor::task]
-    pub async fn imu_task(
-        mut rb: ringbuf::StaticProducer<
-            'static,
-            (nalgebra::Vector3<f32>, nalgebra::Vector3<f32>),
-            5,
-        >,
-    ) {
+    pub async fn imu_task() {
         use embassy_stm32::spi;
         use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
         use embassy_sync::blocking_mutex::raw::NoopRawMutex;
         use embassy_sync::mutex::Mutex;
+
+        let mut rb = imu::get_imu_producer(imu::ImuInstance::IMU1).unwrap();
 
         let mut spi_config = spi::Config::default();
         spi_config.mode = spi::MODE_3;

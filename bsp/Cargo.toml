@@ -25,6 +25,7 @@ serial-manager = { version = "*", path = "../libraries/serial-manager" }
 icm42688 = { version = "*", path = "../libraries/icm42688", features = [
   "async",
 ], optional = true }
+imu = {version = "*", path = "../libraries/imu"}
 
 [dependencies.embassy-sync]
 version = "0.5.0"
