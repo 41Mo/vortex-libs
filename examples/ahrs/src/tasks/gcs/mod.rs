@@ -1,14 +1,31 @@
-#![allow(dead_code)]
-use mavlink;
-use crate::ins::INS;
+use super::ins;
 use crate::fmt;
+use mavlink;
 use serial_manager as serial;
+use singleton::*;
 
-pub struct GcsMavlink {
+#[derive(Singleton)]
+pub struct GCSMAVLINK {
     port: serial::SerialPort,
     mav_header: mavlink::MavHeader,
     last_update_time: [embassy_time::Instant; 2],
     message_rates: [(MSGID, u32); 2],
+}
+
+impl FnNew for GCSMAVLINK {
+    fn new() -> Self {
+        let port = serial::find_by_protocol(serial::Protocol::MavlinkV2).unwrap();
+        Self {
+            port,
+            mav_header: mavlink::MavHeader {
+                system_id: 1,
+                component_id: 1,
+                sequence: 0,
+            },
+            last_update_time: [embassy_time::Instant::from_micros(0); 2],
+            message_rates: [(MSGID::HEARTBEAT, 1), (MSGID::ATTITUDE, 0)],
+        }
+    }
 }
 
 #[repr(u8)]
@@ -24,22 +41,7 @@ impl Into<u32> for MSGID {
     }
 }
 
-impl GcsMavlink
-{
-    pub fn new() -> Self {
-        let port = serial::find_by_protocol(serial::Protocol::MavlinkV2).unwrap();
-        Self {
-            port,
-            mav_header: mavlink::MavHeader {
-                system_id: 1,
-                component_id: 1,
-                sequence: 0,
-            },
-            last_update_time: [embassy_time::Instant::from_micros(0); 2],
-            message_rates: [(MSGID::HEARTBEAT, 1), (MSGID::ATTITUDE, 0)],
-        }
-    }
-
+impl GCSMAVLINK {
     fn send_message<M: mavlink::Message>(&mut self, m: &M) {
         let port = &mut self.port;
 
@@ -64,14 +66,15 @@ impl GcsMavlink
         self.send_message(&msg)
     }
 
-    fn send_attitude(&mut self, tnow_ms: u64, ins: &INS) {
+    fn send_attitude(&mut self) {
+        let tnow = embassy_time::Instant::now().as_millis();
         use mavlink::common::*;
-        let (roll, pitch, yaw) = ins.get_rpy();
+        let (roll, pitch, yaw) = ins::INS::get().get_rpy();
         let msg = MavMessage::ATTITUDE(ATTITUDE_DATA {
             roll,
             pitch,
             yaw,
-            time_boot_ms: tnow_ms as u32,
+            time_boot_ms: tnow as u32,
             rollspeed: 0.0,
             pitchspeed: 0.0,
             yawspeed: 0.0,
@@ -79,7 +82,7 @@ impl GcsMavlink
         self.send_message(&msg)
     }
 
-    pub fn update_send(&mut self, ins: &INS) {
+    fn update_send(&mut self) {
         let tnow = embassy_time::Instant::now();
 
         for i in 0..self.message_rates.len() {
@@ -93,7 +96,7 @@ impl GcsMavlink
             }
             match self.message_rates[i].0 {
                 MSGID::HEARTBEAT => self.send_heatbeat(),
-                MSGID::ATTITUDE => self.send_attitude(tnow.as_millis(), ins),
+                MSGID::ATTITUDE => self.send_attitude(),
                 #[allow(unreachable_patterns)]
                 _ => (),
             }
@@ -173,10 +176,17 @@ impl GcsMavlink
         Ok(())
     }
 
-    pub fn update_recieve(&mut self) {
+    fn update_recieve(&mut self) {
         if let Err(_e) = self.read_msg() {
             // fmt::trace!("mavlink: read error");
         }
     }
 }
 
+pub fn update_send() {
+    GCSMAVLINK::get().update_send();
+}
+
+pub fn update_recieve() {
+    GCSMAVLINK::get().update_recieve();
+}

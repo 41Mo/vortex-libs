@@ -5,6 +5,9 @@ workspace = { members = [
   "bsp",
   "libraries/scheduler",
   "libraries/serial-manager",
+  "libraries/singleton",
+  "libraries/singleton/singleton-procmacro",
+  "libraries/imu",
 ] }
 
 [package]
@@ -58,7 +61,7 @@ defmt = [
   "defmt-rtt",
   "panic-probe",
   "embassy-executor/defmt",
-  "bsp/defmt",
+  # "bsp/defmt",
 ]
 
 
@@ -85,15 +88,15 @@ codegen-units = 1
 debug = 2
 debug-assertions = true # <-
 incremental = true
-opt-level = "z"         # <-
+opt-level = "s"         # <-
 overflow-checks = false # <-
 #
-# # cargo build/run --release
-# [profile.release]
-# codegen-units = 1
-# debug = 2
-# debug-assertions = false # <-
-# incremental = false
-# lto = 'fat'
-# opt-level = 2            # <-
-# overflow-checks = false  # <-
+# cargo build/run --release
+[profile.release]
+codegen-units = 1
+debug = 2
+debug-assertions = false # <-
+incremental = false
+lto = 'fat'
+opt-level = 3            # <-
+overflow-checks = false  # <-

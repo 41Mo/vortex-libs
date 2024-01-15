@@ -14,6 +14,7 @@ dependencies = [
  "embassy-futures",
  "embassy-time",
  "heapless 0.7.17",
+ "imu",
  "mavlink",
  "micromath",
  "nalgebra",
@@ -21,6 +22,7 @@ dependencies = [
  "ringbuf",
  "scheduler",
  "serial-manager",
+ "singleton",
  "static_cell",
 ]
 
@@ -122,6 +124,7 @@ dependencies = [
  "embassy-usb",
  "embedded-io-async",
  "icm42688",
+ "imu",
  "nalgebra",
  "panic-probe",
  "ringbuf",
@@ -761,6 +764,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
+name = "imu"
+version = "0.1.0"
+dependencies = [
+ "embassy-sync 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nalgebra",
+ "ringbuf",
+ "static_cell",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1196,6 +1209,21 @@ dependencies = [
  "embassy-time",
  "panic-probe",
  "scheduler",
+]
+
+[[package]]
+name = "singleton"
+version = "0.1.0"
+dependencies = [
+ "singleton-procmacro",
+]
+
+[[package]]
+name = "singleton-procmacro"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]

@@ -46,5 +46,5 @@ defmt = [
   "defmt-rtt",
   "panic-probe",
   "embassy-executor/defmt",
-  "bsp/defmt",
+  # "bsp/defmt",
 ]

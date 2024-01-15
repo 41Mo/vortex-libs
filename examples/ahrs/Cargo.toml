@@ -12,7 +12,7 @@ defmt-rtt = { version = "0.4", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
 static_cell = { version = "1.1", features = ["nightly"] }
-nalgebra = { version = "0.32.3", default-features = false}
+nalgebra = { version = "0.32.3", default-features = false }
 ringbuf = { version = "0.3.3", default-features = false }
 mavlink = { version = "0.12.2", features = [
   "embedded",
@@ -22,8 +22,10 @@ heapless = "0.7.16"
 micromath = { version = "2.1.0" }
 
 bsp = { version = "*", path = "../../bsp" }
-scheduler = { version = "*", path="../../libraries/scheduler"}
-serial-manager = { version = "*", path="../../libraries/serial-manager"}
+scheduler = { version = "*", path = "../../libraries/scheduler" }
+serial-manager = { version = "*", path = "../../libraries/serial-manager" }
+singleton = { version = "*", path = "../../libraries/singleton" }
+imu = { version = "*", path = "../../libraries/imu" }
 
 [dependencies.embassy-executor]
 version = "0.4.0"
@@ -42,10 +44,7 @@ git = "https://github.com/embassy-rs/embassy.git"
 rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 
 [features]
-default = [
-  "matek_h743",
-  "defmt",
-]
+default = ["matek_h743", "defmt"]
 
 stm32 = ["cortex-m-rt", "embassy-executor/arch-cortex-m", "bsp/memoryx"]
 matek_h743 = ["stm32", "bsp/matek_h743"]
