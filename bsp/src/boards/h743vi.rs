@@ -103,6 +103,8 @@ fn serial0_bind() {
 }
 
 pub mod hw_tasks {
+    use cortex_m::prelude::_embedded_hal_Pwm;
+    use embassy_stm32::time::hz;
     use embassy_usb::driver::EndpointError;
     use embedded_io_async::Write;
 
@@ -280,11 +282,12 @@ pub mod hw_tasks {
         embassy_futures::join::join(reader, writer).await;
     }
 
-    #[cfg(feature="h743vi_imu")]
+    #[cfg(feature = "h743vi_imu")]
     #[embassy_executor::task]
     pub async fn imu_task() {
-        use embassy_stm32::spi;
+        fmt::debug!("stating imu task");
         use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
+        use embassy_stm32::spi;
         use embassy_sync::blocking_mutex::raw::NoopRawMutex;
         use embassy_sync::mutex::Mutex;
 
@@ -372,5 +375,47 @@ pub mod hw_tasks {
             embassy_time::Timer::after_micros(DELAY).await;
         }
     }
-}
 
+    #[embassy_executor::task]
+    pub async fn pwm_task() {
+        fmt::info!("stating pwm task");
+        use embassy_stm32::timer::simple_pwm;
+        let p = unsafe { embassy_stm32::Peripherals::steal() };
+        let mut pwmdriver = simple_pwm::SimplePwm::new(
+            p.TIM5,
+            Some(simple_pwm::PwmPin::new_ch1(p.PA0, embassy_stm32::gpio::OutputType::PushPull)),
+            None,
+            None,
+            None,
+            hz(50),
+            Default::default(),
+        );
+        pwmdriver.enable(embassy_stm32::timer::Channel::Ch1);
+
+        let max = pwmdriver.get_max_duty();
+        fmt::info!("PWM max duty {}", max);
+
+        let mut duty = 0;
+        loop {
+            duty = 1000;
+            pwmdriver.set_duty(embassy_stm32::timer::Channel::Ch1, duty);
+            fmt::info!("PWM duty {}", duty);
+            embassy_time::Timer::after_millis(300).await;
+
+            duty = 1200;
+            pwmdriver.set_duty(embassy_stm32::timer::Channel::Ch1, duty);
+            fmt::info!("PWM duty {}", duty);
+            embassy_time::Timer::after_millis(300).await;
+
+            duty = 1500;
+            pwmdriver.set_duty(embassy_stm32::timer::Channel::Ch1, duty);
+            fmt::info!("PWM duty {}", duty);
+            embassy_time::Timer::after_millis(300).await;
+
+            duty = 1800;
+            pwmdriver.set_duty(embassy_stm32::timer::Channel::Ch1, duty);
+            fmt::info!("PWM duty {}", duty);
+            embassy_time::Timer::after_millis(300).await;
+        }
+    }
+}

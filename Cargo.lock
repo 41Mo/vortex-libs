@@ -1036,6 +1036,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "pwm"
+version = "0.1.0"
+dependencies = [
+ "bsp",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-time",
+ "heapless 0.7.17",
+ "imu",
+ "mavlink",
+ "micromath",
+ "nalgebra",
+ "panic-probe",
+ "ringbuf",
+ "scheduler",
+ "serial-manager",
+ "singleton",
+ "static_cell",
+]
+
+[[package]]
 name = "quick-xml"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

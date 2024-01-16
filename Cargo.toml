@@ -7,7 +7,7 @@ workspace = { members = [
   "libraries/serial-manager",
   "libraries/singleton",
   "libraries/singleton/singleton-procmacro",
-  "libraries/imu",
+  "libraries/imu", "examples/pwm",
 ] }
 
 [package]
