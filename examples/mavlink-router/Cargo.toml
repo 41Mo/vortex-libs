@@ -1,18 +1,5 @@
-workspace = { members = [
-  "examples/ahrs",
-  "examples/serial_manager",
-  "examples/simple-tasks",
-  "bsp",
-  "libraries/scheduler",
-  "libraries/serial-manager",
-  "libraries/singleton",
-  "libraries/singleton/singleton-procmacro",
-  "libraries/imu",
-  "examples/mavlink-router",
-] }
-
 [package]
-name = "embassy-template"
+name = "mavlink-router"
 version = "0.1.0"
 edition = "2021"
 
@@ -24,7 +11,13 @@ defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
-bsp = { version = "*", path = "bsp" }
+bsp = { version = "*", path = "../../bsp" }
+mavlink = { version = "0.12.2", features = [
+  "embedded",
+  "common",
+], default-features = false }
+heapless = "0.7.16"
+serial-manager = { version = "*", path="../../libraries/serial-manager"}
 
 [dependencies.embassy-executor]
 version = "0.4.0"
@@ -62,42 +55,6 @@ defmt = [
   "defmt-rtt",
   "panic-probe",
   "embassy-executor/defmt",
-  # "bsp/defmt",
+  "bsp/defmt",
 ]
 
-
-# cargo build/run
-[profile.dev]
-codegen-units = 1
-debug = 2
-debug-assertions = true # <-
-incremental = true
-opt-level = 0           # <-
-overflow-checks = true  # <-
-lto = false
-
-# [profile.dev.package."embassy-stm32"]
-# codegen-units = 1
-# debug = 2
-# debug-assertions = true # <-
-# incremental = true
-# opt-level = 0           # <-
-# overflow-checks = true  # <-
-
-[profile.dev.package."*"]
-codegen-units = 1
-debug = 2
-debug-assertions = true # <-
-incremental = true
-opt-level = "s"         # <-
-overflow-checks = false # <-
-#
-# cargo build/run --release
-[profile.release]
-codegen-units = 1
-debug = 2
-debug-assertions = false # <-
-incremental = false
-lto = 'fat'
-opt-level = 3            # <-
-overflow-checks = false  # <-

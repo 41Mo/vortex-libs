@@ -853,6 +853,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "mavlink-router"
+version = "0.1.0"
+dependencies = [
+ "bsp",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-time",
+ "heapless 0.7.17",
+ "mavlink",
+ "panic-probe",
+ "serial-manager",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
