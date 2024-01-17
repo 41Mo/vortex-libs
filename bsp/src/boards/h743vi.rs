@@ -1,11 +1,12 @@
 use super::fmt;
-use cortex_m::interrupt;
-use embassy_stm32::{bind_interrupts, peripherals, time, usart, usb_otg};
+use embassy_stm32::interrupt::InterruptExt;
+use embassy_stm32::{bind_interrupts, interrupt, peripherals, sdmmc, time, usart, usb_otg};
 use serial_manager::{self};
 
 bind_interrupts!(struct Irqs {
     UART7 => usart::InterruptHandler<peripherals::UART7>;
     OTG_FS => usb_otg::InterruptHandler<peripherals::USB_OTG_FS>;
+    SDMMC1 => sdmmc::InterruptHandler<peripherals::SDMMC1>;
 });
 
 fn config() -> embassy_stm32::Config {
@@ -69,14 +70,25 @@ fn config() -> embassy_stm32::Config {
     config
 }
 
+static EXECUTOR_HIGH: embassy_executor::InterruptExecutor =
+    embassy_executor::InterruptExecutor::new();
+
+static EXECUTOR_MED: embassy_executor::InterruptExecutor =
+    embassy_executor::InterruptExecutor::new();
+
 impl super::GenericBoard for super::Board {
-    fn init() {
+    fn init() -> (embassy_executor::SendSpawner, embassy_executor::SendSpawner) {
         let _ = embassy_stm32::init(config());
+        interrupt::UART4.set_priority(interrupt::Priority::P2);
 
         serial0_bind();
         serial1_bind();
 
-        unsafe { interrupt::enable() };
+        let executor_high = EXECUTOR_HIGH.start(interrupt::UART4);
+        let executor_med = EXECUTOR_MED.start(interrupt::UART5);
+
+        unsafe { cortex_m::interrupt::enable() };
+        (executor_high, executor_med)
     }
 }
 
@@ -280,10 +292,19 @@ pub mod hw_tasks {
         embassy_futures::join::join(reader, writer).await;
     }
 
+    #[interrupt]
+    unsafe fn UART4() {
+        EXECUTOR_HIGH.on_interrupt()
+    }
+
+    #[interrupt]
+    unsafe fn UART5() {
+        EXECUTOR_MED.on_interrupt()
+    }
+
     #[cfg(feature = "h743vi_imu")]
     #[embassy_executor::task]
     pub async fn imu_task() {
-        fmt::debug!("stating imu task");
         use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
         use embassy_stm32::spi;
         use embassy_sync::blocking_mutex::raw::NoopRawMutex;
@@ -325,10 +346,25 @@ pub mod hw_tasks {
 
         let mut accumulated_accel = nalgebra::Vector3::<f32>::default();
         let mut accumulated_gyro = nalgebra::Vector3::<f32>::default();
+        let mut accumulated_dt_100us: u16 = 0;
         let mut accumulator: usize = 0;
+        let mut last_run = embassy_time::Instant::now();
 
+        let mut adjust: i32 = 0;
+        let loop_dt: u64 = 1_000_000 / 2000;
         loop {
+            let now = embassy_time::Instant::now();
+            let dt = (now - last_run).as_micros();
             let mut n_samples = dev.get_sample_num().await.unwrap();
+
+            // adjust timer to always get 1 sample
+            if n_samples == 1 {
+                ()
+            } else if n_samples == 0 {
+                adjust += 1;
+            } else {
+                adjust -= 1
+            }
 
             'outer: while n_samples > 0 {
                 let n = core::cmp::min(n_samples as usize, FIFO_BUFF_LEN);
@@ -353,24 +389,51 @@ pub mod hw_tasks {
                     icm42688::apply_scales(&mut acc, &mut gyr);
                     accumulated_accel += acc;
                     accumulated_gyro += gyr;
+                    accumulated_dt_100us += (dt / 100) as u16;
                     accumulator += 1;
+
+                    let mut lacc = [0.0; 3];
+                    let mut lgyr = [0.0; 3];
+                    lacc.copy_from_slice(acc.as_slice());
+                    lgyr.copy_from_slice(gyr.as_slice());
+                    logger::log_msg(logger::LogMessages::LogImuRaw(logger::ImuRaw {
+                        sample_time: embassy_time::Instant::now().as_micros(),
+                        acc: lacc,
+                        gyr: lgyr,
+                    }));
                 }
                 n_samples -= n as u16;
             }
 
-            if accumulator > 100 {
+            if accumulator >= 10 {
                 accumulated_accel /= accumulator as f32;
                 accumulated_gyro /= accumulator as f32;
+                accumulated_dt_100us /= accumulator as u16;
 
-                let _ = rb.push((accumulated_accel, accumulated_gyro));
+                let _ = rb.push((
+                    accumulated_accel,
+                    accumulated_gyro,
+                    accumulated_dt_100us / 10, // convert to micros
+                ));
 
                 accumulator = 0;
                 accumulated_accel *= 0.0;
                 accumulated_gyro *= 0.0;
             }
 
-            const DELAY: u64 = 1000000 / 1000;
-            embassy_time::Timer::after_micros(DELAY).await;
+            let next_run =
+                now + embassy_time::Duration::from_micros((loop_dt as i32 + adjust) as u64);
+
+            last_run = now;
+
+            // crate::fmt::debug!(
+            //     "hz: {}, dt {}, adjust {}",
+            //     1_000_000 / core::cmp::max(dt, 1),
+            //     dt,
+            //     adjust
+            // );
+
+            embassy_time::Timer::at(next_run).await;
         }
     }
 
@@ -507,4 +570,212 @@ pub mod hw_tasks {
             }
         }
     }
+    #[cfg(feature = "matek_h743")]
+    mod sdcard {
+        use super::*;
+
+        struct SdDriver<'a> {
+            sddriver: core::cell::Cell<Option<sdmmc::Sdmmc<'a, peripherals::SDMMC1>>>,
+        }
+
+        struct TimeSource();
+
+        impl embedded_sdmmc::TimeSource for TimeSource {
+            fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
+                embedded_sdmmc::Timestamp {
+                    year_since_1970: 0,
+                    zero_indexed_month: 0,
+                    zero_indexed_day: 0,
+                    hours: 0,
+                    minutes: 0,
+                    seconds: 0,
+                }
+            }
+        }
+
+        impl<'a> embedded_sdmmc::BlockDevice for SdDriver<'a> {
+            type Error = Error;
+
+            fn read(
+                &self,
+                blocks: &mut [embedded_sdmmc::Block],
+                start_block_idx: embedded_sdmmc::BlockIdx,
+                _reason: &str,
+            ) -> Result<(), Self::Error> {
+                let mut drv = self.sddriver.replace(None).unwrap();
+                for i in blocks {
+                    let mut block = sdmmc::DataBlock([0u8; 512]);
+                    fmt::unwrap!(embassy_futures::block_on(
+                        drv.read_block(start_block_idx.0, &mut block)
+                    ));
+                    let _ = core::mem::replace::<[u8; 512]>(i, block.0);
+                }
+
+                self.sddriver.replace(Some(drv));
+
+                return Ok(());
+            }
+
+            fn write(
+                &self,
+                blocks: &[embedded_sdmmc::Block],
+                start_block_idx: embedded_sdmmc::BlockIdx,
+            ) -> Result<(), Self::Error> {
+                let mut drv = self.sddriver.replace(None).unwrap();
+                for i in blocks {
+                    fmt::unwrap!(embassy_futures::block_on(
+                        drv.write_block(start_block_idx.0, &mut sdmmc::DataBlock(i.contents))
+                    ));
+                }
+                self.sddriver.replace(Some(drv));
+                return Ok(());
+            }
+
+            fn num_blocks(&self) -> Result<embedded_sdmmc::BlockCount, Self::Error> {
+                let drv = self.sddriver.replace(None).unwrap();
+                let card = drv.card().unwrap();
+                let blocks = card.csd.block_count();
+                self.sddriver.replace(Some(drv));
+
+                Ok(embedded_sdmmc::BlockCount(blocks))
+            }
+        }
+
+        #[derive(Debug)]
+        pub enum Error {
+            SDMMC(sdmmc::Error),
+        }
+
+        const LOG_NAME_MAX_BYTES: usize = 9;
+        fn get_logname(buff: &[u8]) -> heapless::String<LOG_NAME_MAX_BYTES> {
+            use core::str::FromStr;
+            if buff.len() < LOG_NAME_MAX_BYTES {
+                return heapless::String::from_str("00001.LOG").unwrap();
+            }
+
+            let name = core::str::from_utf8(&buff);
+            if name.is_err() {
+                return heapless::String::from_str("00001.LOG").unwrap();
+            }
+            let name = name.unwrap();
+            let name = name.strip_suffix(".LOG");
+
+            if name.is_none() {
+                return heapless::String::from_str("00001.LOG").unwrap();
+            }
+
+            let name = name.unwrap();
+            let lognum = name.parse::<u16>();
+            if lognum.is_err() {
+                return heapless::String::from_str("00001.LOG").unwrap();
+            }
+            let lognum = lognum.unwrap();
+
+            let mut s = heapless::String::new();
+            core::fmt::write(
+                &mut s,
+                format_args!("{:0alignment$}.LOG", lognum + 1, alignment = 5),
+            )
+            .unwrap();
+            return s;
+        }
+
+        fn prepare_for_next_log(
+            volume_mgr: &mut embedded_sdmmc::VolumeManager<SdDriver<'_>, TimeSource>,
+        ) -> Result<
+            heapless::String<LOG_NAME_MAX_BYTES>,
+            embedded_sdmmc::Error<hw_tasks::sdcard::Error>,
+        > {
+            let mut vol0 = volume_mgr.open_volume(embedded_sdmmc::VolumeIdx(0))?;
+            let mut dir = vol0.open_root_dir()?;
+            let mut last_log_txt = dir.open_file_in_dir(
+                "LAST_LOG.TXT",
+                embedded_sdmmc::Mode::ReadWriteCreateOrAppend,
+            )?;
+            let mut buff = [0u8; LOG_NAME_MAX_BYTES];
+            last_log_txt.seek_from_start(0)?;
+            let amt = last_log_txt.read(&mut buff)?;
+            let logname = &get_logname(&buff[..amt]);
+            last_log_txt.seek_from_start(0)?;
+            last_log_txt.write(logname.as_bytes())?;
+
+            fmt::debug!("next log name{:?}", logname.as_str());
+
+            Ok(logname.clone())
+        }
+
+        #[embassy_executor::task]
+        pub async fn sdcard_task() {
+            let p = unsafe { embassy_stm32::Peripherals::steal() };
+            let mut sddriver = sdmmc::Sdmmc::new_4bit(
+                p.SDMMC1,
+                Irqs,
+                p.PC12,
+                p.PD2,
+                p.PC8,
+                p.PC9,
+                p.PC10,
+                p.PC11,
+                Default::default(),
+            );
+            fmt::debug!("Configured clock: {}", sddriver.clock().0);
+            fmt::unwrap!(sddriver.init_card(time::mhz(25)).await);
+            let sddriver = SdDriver {
+                sddriver: core::cell::Cell::new(Some(sddriver)),
+            };
+            let mut volume_mgr = embedded_sdmmc::VolumeManager::new(sddriver, TimeSource());
+            let mut consumer = logger::get_consumer().unwrap();
+
+            let logname = match prepare_for_next_log(&mut volume_mgr) {
+                Ok(v) => v,
+                Err(_e) => {
+                    #[cfg(feature = "defmt")]
+                    fmt::error!(
+                        "SD failed to prepare for next log {}",
+                        defmt::Debug2Format(&_e)
+                    );
+                    return;
+                }
+            };
+
+            {
+                let mut vol = volume_mgr
+                    .open_volume(embedded_sdmmc::VolumeIdx(0))
+                    .unwrap();
+                let mut dir = vol.open_root_dir().unwrap();
+                let _file = dir
+                    .open_file_in_dir(
+                        logname.as_str(),
+                        embedded_sdmmc::Mode::ReadWriteCreateOrTruncate,
+                    )
+                    .unwrap();
+            }
+
+            let mut read_buf = [0u8; 512];
+
+            let mut bytes_written: usize = 0;
+            loop {
+                let amt = consumer.pop_slice(&mut read_buf);
+                if amt == 0 {
+                    embassy_futures::yield_now().await;
+                    continue;
+                }
+                let mut vol = volume_mgr
+                    .open_volume(embedded_sdmmc::VolumeIdx(0))
+                    .unwrap();
+                let mut dir = vol.open_root_dir().unwrap();
+                let mut file = dir
+                    .open_file_in_dir(logname.as_str(), embedded_sdmmc::Mode::ReadWriteAppend)
+                    .unwrap();
+
+                file.write(&mut read_buf[..amt]).unwrap();
+                bytes_written = bytes_written.overflowing_add(amt).0;
+                fmt::trace!("SD wrote {} bytes", bytes_written);
+                embassy_futures::yield_now().await;
+            }
+        }
+    }
+
+    #[cfg(feature = "matek_h743")]
+    pub use sdcard::*;
 }

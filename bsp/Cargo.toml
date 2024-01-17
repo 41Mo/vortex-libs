@@ -20,6 +20,7 @@ cortex-m-rt = { version = "0.7.0", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 async-io = { version = "1.6.0", optional = true }
 nalgebra = { version = "0.32.3", default-features = false, optional = true }
+heapless = { version = "0.7.16", optional = true }
 
 serial-manager = { version = "*", path = "../libraries/serial-manager" }
 icm42688 = { version = "*", path = "../libraries/icm42688", features = [
@@ -27,60 +28,69 @@ icm42688 = { version = "*", path = "../libraries/icm42688", features = [
 ], optional = true }
 imu = {version = "*", path = "../libraries/imu"}
 servo-control = {version = "*", path="../libraries/servo-control"}
+logger = { version = "*", path = "../libraries/logger" }
+
+[dependencies.embedded-sdmmc]
+version = "*"
+git = "https://github.com/rust-embedded-community/embedded-sdmmc-rs"
+branch = "develop"
+optional = true
 
 [dependencies.embassy-sync]
-version = "0.5.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [dependencies.embassy-stm32]
-version = "0.1.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 features = ["unstable-pac", "time-driver-any", "exti", "chrono"]
 optional = true
 
 [dependencies.embassy-executor]
-version = "0.4.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 features = ["nightly"]
 
 [dependencies.embassy-time]
-version = "0.2.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [dependencies.embassy-futures]
-version = "0.1.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [dependencies.embassy-usb]
-version = "0.1.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [dependencies.embassy-embedded-hal]
-version = "0.1.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
 default = [
+  # "matek_h743",
+  # "defmt"
   # "h743vi"
   "matek_h743"
 ]
 
 stm32 = [
   "embassy-stm32",
-  "embassy-executor/executor-thread",
-  "embassy-executor/integrated-timers",
   "embassy-time/tick-hz-32_768",
   "cortex-m",
   "cortex-m-rt",
+  "embassy-executor/executor-thread",
+  "embassy-executor/integrated-timers",
   "embassy-executor/arch-cortex-m",
-  # "embassy-executor/executor-interrupt",
+  "embassy-executor/executor-interrupt",
 ]
 
 defmt = [
@@ -105,7 +115,7 @@ h743vi = [
 
 h743vi_imu = ["nalgebra", "icm42688"]
 
-matek_h743 = ["h743vi", "h743vi_imu"]
+matek_h743 = ["h743vi", "h743vi_imu", "embedded-sdmmc", "heapless"]
 
 std = [
   "embassy-executor/arch-std",

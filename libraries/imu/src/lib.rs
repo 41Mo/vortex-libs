@@ -4,7 +4,7 @@ use nalgebra;
 use ringbuf;
 
 const BUF_MAX: usize = 5;
-type RBData = (nalgebra::Vector3<f32>, nalgebra::Vector3<f32>);
+type RBData = (nalgebra::Vector3<f32>, nalgebra::Vector3<f32>, u16);
 pub type Consumer = ringbuf::StaticConsumer<'static, RBData, BUF_MAX>;
 pub type Producer = ringbuf::StaticProducer<'static, RBData, BUF_MAX>;
 
