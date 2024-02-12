@@ -1,5 +1,5 @@
 [package]
-name = "ahrs"
+name = "pwm"
 version = "0.1.0"
 edition = "2021"
 
@@ -26,6 +26,7 @@ scheduler = { version = "*", path = "../../libraries/scheduler" }
 serial-manager = { version = "*", path = "../../libraries/serial-manager" }
 singleton = { version = "*", path = "../../libraries/singleton" }
 imu = { version = "*", path = "../../libraries/imu" }
+servo-control = {version = "*", path="../../libraries/servo-control"}
 
 [dependencies.embassy-executor]
 version = "0.4.0"

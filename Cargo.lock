@@ -129,6 +129,7 @@ dependencies = [
  "panic-probe",
  "ringbuf",
  "serial-manager",
+ "servo-control",
  "static_cell",
 ]
 
@@ -1036,6 +1037,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "pwm"
+version = "0.1.0"
+dependencies = [
+ "bsp",
+ "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-time",
+ "heapless 0.7.17",
+ "imu",
+ "mavlink",
+ "micromath",
+ "nalgebra",
+ "panic-probe",
+ "ringbuf",
+ "scheduler",
+ "serial-manager",
+ "servo-control",
+ "singleton",
+ "static_cell",
+]
+
+[[package]]
 name = "quick-xml"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1182,6 +1208,14 @@ dependencies = [
  "panic-probe",
  "scheduler",
  "serial-manager",
+]
+
+[[package]]
+name = "servo-control"
+version = "0.1.0"
+dependencies = [
+ "embassy-sync 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapless 0.7.17",
 ]
 
 [[package]]

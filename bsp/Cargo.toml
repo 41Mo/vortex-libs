@@ -26,6 +26,7 @@ icm42688 = { version = "*", path = "../libraries/icm42688", features = [
   "async",
 ], optional = true }
 imu = {version = "*", path = "../libraries/imu"}
+servo-control = {version = "*", path="../libraries/servo-control"}
 
 [dependencies.embassy-sync]
 version = "0.5.0"
@@ -68,6 +69,7 @@ rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
 [features]
 default = [
   # "h743vi"
+  "matek_h743"
 ]
 
 stm32 = [

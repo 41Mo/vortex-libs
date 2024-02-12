@@ -280,11 +280,12 @@ pub mod hw_tasks {
         embassy_futures::join::join(reader, writer).await;
     }
 
-    #[cfg(feature="h743vi_imu")]
+    #[cfg(feature = "h743vi_imu")]
     #[embassy_executor::task]
     pub async fn imu_task() {
-        use embassy_stm32::spi;
+        fmt::debug!("stating imu task");
         use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
+        use embassy_stm32::spi;
         use embassy_sync::blocking_mutex::raw::NoopRawMutex;
         use embassy_sync::mutex::Mutex;
 
@@ -372,5 +373,138 @@ pub mod hw_tasks {
             embassy_time::Timer::after_micros(DELAY).await;
         }
     }
-}
 
+    #[embassy_executor::task]
+    pub async fn pwm_task() {
+        use embassy_stm32::time::hz;
+        use embassy_stm32::timer::complementary_pwm;
+        use embassy_stm32::timer::simple_pwm;
+        use embassy_stm32::timer::Channel;
+        use servo_control::PwmDriverMsg;
+
+        let p = unsafe { embassy_stm32::Peripherals::steal() };
+        /*
+         * servo duty cycle
+         * for med we need 1.5 ms so for 20ms is 7.5% duty cycle
+         */
+
+        /*
+         *
+         * PB0  TIM8_CH2N TIM8  PWM(1)  GPIO(50)
+         * PB1  TIM8_CH3N TIM8  PWM(2)  GPIO(51)
+         * PA0  TIM5_CH1  TIM5  PWM(3)  GPIO(52)
+         * PA1  TIM5_CH2  TIM5  PWM(4)  GPIO(53)
+         * PA2  TIM5_CH3  TIM5  PWM(5)  GPIO(54)
+         * PA3  TIM5_CH4  TIM5  PWM(6)  GPIO(55)
+         * PD12 TIM4_CH1 TIM4 PWM(7) GPIO(56)
+         * PD13 TIM4_CH2 TIM4 PWM(8) GPIO(57)
+         * PD14 TIM4_CH3 TIM4 PWM(9) GPIO(58)
+         * PD15 TIM4_CH4 TIM4 PWM(10) GPIO(59)
+         * PE5  TIM15_CH1 TIM15 PWM(11) GPIO(60)
+         * PE6  TIM15_CH2 TIM15 PWM(12) GPIO(61)
+         * PA8 TIM1_CH1 TIM1 PWM(13) GPIO(62) # for WS2812 LED
+         */
+
+        // const max_servo_period_us:f32 = 2000.0;
+        // const med_servo_period_us:f32 = 1500.0;
+        // const min_servo_period_us:f32 = 1000.0;
+        const DUTY_CYCLE_US: f32 = 20000.0; // this is
+        let servo_reciever = servo_control::get_receiver();
+        let mut pwmdriver1 = complementary_pwm::ComplementaryPwm::new(
+            p.TIM8,
+            None,
+            None,
+            None,
+            Some(complementary_pwm::ComplementaryPwmPin::new_ch2(
+                p.PB0,
+                embassy_stm32::gpio::OutputType::PushPull,
+            )), // PWM1
+            None,
+            Some(complementary_pwm::ComplementaryPwmPin::new_ch3(
+                p.PB1,
+                embassy_stm32::gpio::OutputType::PushPull,
+            )), // PWM2
+            None,
+            None,
+            hz(50),
+            Default::default(),
+        );
+        let mut pwmdriver2 = simple_pwm::SimplePwm::new(
+            p.TIM5,
+            Some(simple_pwm::PwmPin::new_ch1(
+                p.PA0,
+                embassy_stm32::gpio::OutputType::PushPull,
+            )), // PWM3
+            Some(simple_pwm::PwmPin::new_ch2(
+                p.PA1,
+                embassy_stm32::gpio::OutputType::PushPull,
+            )), // PWM4
+            Some(simple_pwm::PwmPin::new_ch3(
+                p.PA2,
+                embassy_stm32::gpio::OutputType::PushPull,
+            )), // PWM5
+            Some(simple_pwm::PwmPin::new_ch4(
+                p.PA3,
+                embassy_stm32::gpio::OutputType::PushPull,
+            )), // PWM6
+            hz(50),
+            Default::default(),
+        );
+        let drv1_max_duty = pwmdriver1.get_max_duty() as f32;
+        let drv2_max_duty = pwmdriver2.get_max_duty() as f32;
+        let pwmdriver1 = &mut pwmdriver1;
+        let pwmdriver2 = &mut pwmdriver2;
+
+        let srv_to_ch_map = [
+            (Channel::Ch2),
+            (Channel::Ch3),
+            (Channel::Ch1),
+            (Channel::Ch2),
+            (Channel::Ch3),
+            (Channel::Ch4),
+        ];
+
+        loop {
+            let v = servo_reciever.receive().await;
+            match v {
+                PwmDriverMsg::SetPeriod(r) => {
+                    let idx = r.0 as usize - 1;
+                    let pwm_ch = srv_to_ch_map[idx];
+                    let c = r.1 as f32 / DUTY_CYCLE_US;
+                    match idx {
+                        0..=1 => {
+                            pwmdriver1.set_duty(pwm_ch, (drv1_max_duty * c) as u16);
+                        }
+                        2..=5 => {
+                            fmt::debug!("setting {} to {}", idx, r.1);
+                            pwmdriver2.set_duty(pwm_ch, (drv2_max_duty * c) as u16);
+                        }
+                        _ => fmt::debug!("wrong channel"),
+                    }
+                }
+                PwmDriverMsg::OnOff(r) => {
+                    let idx = r.0 as usize - 1;
+                    let pwm_ch = srv_to_ch_map[idx];
+                    match idx {
+                        0..=1 => {
+                            if r.1 {
+                                pwmdriver1.enable(pwm_ch)
+                            } else {
+                                pwmdriver1.disable(pwm_ch)
+                            }
+                        }
+                        2..=5 => {
+                            if r.1 {
+                                fmt::debug!("enabling channel {}", idx);
+                                pwmdriver2.enable(pwm_ch)
+                            } else {
+                                pwmdriver2.disable(pwm_ch)
+                            }
+                        }
+                        _ => fmt::debug!("wrong channel"),
+                    }
+                }
+            }
+        }
+    }
+}
