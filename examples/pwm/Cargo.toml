@@ -29,20 +29,20 @@ imu = { version = "*", path = "../../libraries/imu" }
 servo-control = {version = "*", path="../../libraries/servo-control"}
 
 [dependencies.embassy-executor]
-version = "0.4.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 features = ["nightly"]
 
 [dependencies.embassy-time]
-version = "0.2.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [dependencies.embassy-futures]
-version = "0.1.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
 default = ["matek_h743", "defmt"]

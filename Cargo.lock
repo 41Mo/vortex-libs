@@ -123,6 +123,7 @@ dependencies = [
  "embassy-sync 0.5.0 (git+https://github.com/embassy-rs/embassy.git?rev=9cd0beaee37f9e1cc885ad162b63bca795478227)",
  "embassy-time",
  "embassy-usb",
+ "embedded-fatfs",
  "embedded-io-async",
  "embedded-sdmmc",
  "heapless 0.7.17",
@@ -528,6 +529,12 @@ source = "git+https://github.com/embassy-rs/embassy.git?rev=9cd0beaee37f9e1cc885
 dependencies = [
  "defmt",
 ]
+
+[[package]]
+name = "embedded-fatfs"
+version = "0.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33c853721b4b95ccb0dd69c3cfed67a5fda3c24535d17027d4e80914d4aaff8d"
 
 [[package]]
 name = "embedded-hal"
