@@ -129,6 +129,7 @@ dependencies = [
  "panic-probe",
  "ringbuf",
  "serial-manager",
+ "servo-control",
  "static_cell",
 ]
 
@@ -1055,6 +1056,7 @@ dependencies = [
  "ringbuf",
  "scheduler",
  "serial-manager",
+ "servo-control",
  "singleton",
  "static_cell",
 ]
@@ -1206,6 +1208,14 @@ dependencies = [
  "panic-probe",
  "scheduler",
  "serial-manager",
+]
+
+[[package]]
+name = "servo-control"
+version = "0.1.0"
+dependencies = [
+ "embassy-sync 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapless 0.7.17",
 ]
 
 [[package]]

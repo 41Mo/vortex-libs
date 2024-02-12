@@ -166,7 +166,7 @@ pub fn bind_port(
 mod tests {
     #[test]
     fn config_nice() {
-        let cfg = Config::default().baud(115_200);
+        let cfg = crate::Config::default().baud(115_200);
         println!("cfg {:?}", cfg);
     }
 }

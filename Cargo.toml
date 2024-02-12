@@ -8,6 +8,7 @@ workspace = { members = [
   "libraries/singleton",
   "libraries/singleton/singleton-procmacro",
   "libraries/imu", "examples/pwm",
+  "libraries/servo-control",
 ] }
 
 [package]
