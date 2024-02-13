@@ -123,12 +123,20 @@ ap_log += DFMessage(PARM_MSG_FMT, [0, "FORMAT_VERSION", 13], False,
 ap_log_fhandle = open(args.ap_log, mode="wb")
 
 while True:
-    buf = fhandle.read1(2)
+    try:
+        buf = fhandle.read1(2)
+    except Exception as e:
+        print("read failed ", e)
+        break
     if buf == b'':
         break
     (_type, ) = struct.unpack("<H", buf)
     if _type == 0x01:
-        buf = fhandle.read1(32)
+        try:
+            buf = fhandle.read1(32)
+        except Exception as e:
+            print("read failed ", e)
+            continue
 
         try:
             imu = ImuRaw(*struct.unpack("<Q" + "f" * 3 + "f" * 3, buf))
@@ -148,7 +156,11 @@ while True:
         except Exception as e:
             pass
     if _type == 0x02:
-        buf = fhandle.read1(44)
+        try:
+            buf = fhandle.read1(44)
+        except Exception as e:
+            print("read failed ", e)
+            continue
 
         try:
             ins = INS(*struct.unpack("<Q" + "f" * 3 + "f" * 3 + "f" * 3, buf))
@@ -172,6 +184,7 @@ while True:
             pass
             # print("failed to get msgbuf ", e)
 
+print("readed bytes ", fhandle.tell())
 res = ap_log_fhandle.write(ap_log)
 if res != len(ap_log):
     print("write err", file=sys.stderr)

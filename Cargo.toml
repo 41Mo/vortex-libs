@@ -92,7 +92,7 @@ debug = 2
 debug-assertions = true # <-
 incremental = true
 opt-level = "s"         # <-
-overflow-checks = false # <-
+overflow-checks = true # <-
 #
 # cargo build/run --release
 [profile.release]

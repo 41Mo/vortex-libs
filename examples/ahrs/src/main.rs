@@ -21,14 +21,18 @@ fn main() -> ! {
     let executor_low = EXECUTOR_LOW.init(embassy_executor::Executor::new());
 
 
-    fmt::unwrap!(executor_med.spawn(tasks::start_tasks()));
-    fmt::unwrap!(executor_high.spawn(imu_task()));
+    fmt::unwrap!(executor_high.spawn(sdcard_task()));
+    // fmt::unwrap!(executor_high.spawn(imu_task()));
+    // fmt::unwrap!(executor_med.spawn(tasks::start_tasks()));
 
     // io tasks are low prio tasks
-    executor_low.run(|s| {
-        fmt::unwrap!(s.spawn(sdcard_task()));
-        fmt::unwrap!(s.spawn(serial0_runner(serial::Config::default())));
-    });
+    // executor_low.run(|s| {
+    //     fmt::unwrap!(s.spawn(sdcard_task()));
+    //     fmt::unwrap!(s.spawn(serial0_runner(serial::Config::default())));
+    // });
+    loop {
+
+    }
 }
 
 #[cfg(not(feature = "std"))]

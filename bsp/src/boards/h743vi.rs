@@ -392,15 +392,15 @@ pub mod hw_tasks {
                     accumulated_dt_100us += (dt / 100) as u16;
                     accumulator += 1;
 
-                    let mut lacc = [0.0; 3];
-                    let mut lgyr = [0.0; 3];
-                    lacc.copy_from_slice(acc.as_slice());
-                    lgyr.copy_from_slice(gyr.as_slice());
-                    logger::log_msg(logger::LogMessages::LogImuRaw(logger::ImuRaw {
-                        sample_time: embassy_time::Instant::now().as_micros(),
-                        acc: lacc,
-                        gyr: lgyr,
-                    }));
+                    // let mut lacc = [0.0; 3];
+                    // let mut lgyr = [0.0; 3];
+                    // lacc.copy_from_slice(acc.as_slice());
+                    // lgyr.copy_from_slice(gyr.as_slice());
+                    // logger::log_msg(logger::LogMessages::LogImuRaw(logger::ImuRaw {
+                    //     sample_time: embassy_time::Instant::now().as_micros(),
+                    //     acc: lacc,
+                    //     gyr: lgyr,
+                    // }));
                 }
                 n_samples -= n as u16;
             }
@@ -570,80 +570,215 @@ pub mod hw_tasks {
             }
         }
     }
-    #[cfg(feature = "matek_h743")]
     mod sdcard {
         use super::*;
+        use embedded_fatfs::{FileSystem, FsOptions};
+        use embedded_io_async::{ErrorType, Read, Seek, SeekFrom};
 
-        struct SdDriver<'a> {
-            sddriver: core::cell::Cell<Option<sdmmc::Sdmmc<'a, peripherals::SDMMC1>>>,
+        struct SdmmcInmemStorage<'a, T: sdmmc::Instance> {
+            block: sdmmc::DataBlock,
+            drv: sdmmc::Sdmmc<'a, T>,
+            block_idx: u32,
+            offset_in_block: u16,
+            max_blocks: u32,
+            should_read: bool,
         }
 
-        struct TimeSource();
-
-        impl embedded_sdmmc::TimeSource for TimeSource {
-            fn get_timestamp(&self) -> embedded_sdmmc::Timestamp {
-                embedded_sdmmc::Timestamp {
-                    year_since_1970: 0,
-                    zero_indexed_month: 0,
-                    zero_indexed_day: 0,
-                    hours: 0,
-                    minutes: 0,
-                    seconds: 0,
+        impl<'a, T: sdmmc::Instance> SdmmcInmemStorage<'a, T> {
+            fn new(driver: sdmmc::Sdmmc<'a, T>) -> Self {
+                Self {
+                    block: sdmmc::DataBlock([0u8; 512]),
+                    block_idx: 0,
+                    offset_in_block: 0,
+                    max_blocks: driver.card().unwrap().csd.block_count(),
+                    drv: driver,
+                    should_read: true,
                 }
+            }
+
+            async fn retry_write(&mut self) -> Result<(), Error> {
+                let mut retry = false;
+                loop {
+                    if let Err(e) = self.drv.write_block(self.block_idx, &self.block).await {
+                        match e {
+                            sdmmc::Error::Timeout => retry = true,
+                            _ => Err(e)?,
+                        }
+                    } else {
+                        retry = false;
+                    }
+                    if !retry {
+                        break;
+                    }
+                }
+                Ok(())
             }
         }
 
-        impl<'a> embedded_sdmmc::BlockDevice for SdDriver<'a> {
+        #[derive(Debug, defmt::Format)]
+        enum Error {
+            SdmmcErr(sdmmc::Error),
+        }
+
+        impl From<sdmmc::Error> for Error {
+            fn from(value: sdmmc::Error) -> Self {
+                Error::SdmmcErr(value)
+            }
+        }
+
+        const BLOCK_SIZE: u16 = 512;
+
+        impl embedded_io_async::Error for Error {
+            fn kind(&self) -> embedded_io_async::ErrorKind {
+                todo!()
+            }
+        }
+
+        impl<'a, T: sdmmc::Instance> embedded_io_async::ErrorType for SdmmcInmemStorage<'a, T> {
             type Error = Error;
+        }
 
-            fn read(
-                &self,
-                blocks: &mut [embedded_sdmmc::Block],
-                start_block_idx: embedded_sdmmc::BlockIdx,
-                _reason: &str,
-            ) -> Result<(), Self::Error> {
-                let mut drv = self.sddriver.replace(None).unwrap();
-                for i in blocks {
-                    let mut block = sdmmc::DataBlock([0u8; 512]);
-                    fmt::unwrap!(embassy_futures::block_on(
-                        drv.read_block(start_block_idx.0, &mut block)
-                    ));
-                    let _ = core::mem::replace::<[u8; 512]>(i, block.0);
+        impl<'a, T: sdmmc::Instance> embedded_io_async::Read for SdmmcInmemStorage<'a, T> {
+            async fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+                if self.should_read {
+                    self.drv
+                        .read_block(self.block_idx, &mut self.block)
+                        .await
+                        .unwrap();
+                    self.should_read = false;
                 }
 
-                self.sddriver.replace(Some(drv));
+                let bytes_copied;
+                let new_offset: usize =
+                    <u16 as Into<usize>>::into(self.offset_in_block) + buf.len();
 
-                return Ok(());
-            }
-
-            fn write(
-                &self,
-                blocks: &[embedded_sdmmc::Block],
-                start_block_idx: embedded_sdmmc::BlockIdx,
-            ) -> Result<(), Self::Error> {
-                let mut drv = self.sddriver.replace(None).unwrap();
-                for i in blocks {
-                    fmt::unwrap!(embassy_futures::block_on(
-                        drv.write_block(start_block_idx.0, &mut sdmmc::DataBlock(i.contents))
-                    ));
+                let bs_usize: usize = BLOCK_SIZE.into();
+                if (new_offset / bs_usize) > 0 {
+                    // we are crossing bound of block
+                    bytes_copied = (BLOCK_SIZE - self.offset_in_block).into();
+                    buf[..bytes_copied]
+                        .copy_from_slice(&self.block.0[self.offset_in_block.into()..]);
+                    self.block_idx += 1;
+                    self.offset_in_block = 0;
+                    self.should_read = true;
+                    assert!(bytes_copied == buf.len())
+                } else {
+                    // we are inside of block
+                    buf.copy_from_slice(
+                        &self.block.0[self.offset_in_block.into()..new_offset.into()],
+                    );
+                    self.offset_in_block = new_offset.try_into().unwrap();
+                    bytes_copied = buf.len();
                 }
-                self.sddriver.replace(Some(drv));
-                return Ok(());
-            }
 
-            fn num_blocks(&self) -> Result<embedded_sdmmc::BlockCount, Self::Error> {
-                let drv = self.sddriver.replace(None).unwrap();
-                let card = drv.card().unwrap();
-                let blocks = card.csd.block_count();
-                self.sddriver.replace(Some(drv));
-
-                Ok(embedded_sdmmc::BlockCount(blocks))
+                Ok(bytes_copied)
             }
         }
 
-        #[derive(Debug)]
-        pub enum Error {
-            SDMMC(sdmmc::Error),
+        impl<'a, T: sdmmc::Instance> embedded_io_async::Write for SdmmcInmemStorage<'a, T> {
+            async fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+                let new_offset = <u16 as Into<usize>>::into(self.offset_in_block) + buf.len();
+                #[cfg(sddebug)]
+                fmt::debug!("write  bytes: {}", buf.len());
+
+                // let bytes_offset:u64 = <u32 as Into<u64>>::into(self.block_idx)*512 + <u16 as Into<u64>>::into(self.offset_in_block.into());
+                // fmt::debug!(":#x?", bytes_offset);
+
+                if self.offset_in_block == 0
+                    && new_offset / <u16 as Into<usize>>::into(BLOCK_SIZE) > 0
+                {
+                    let block = sdmmc::DataBlock(unsafe { *(buf.as_ptr() as *const [u8; 512]) });
+                    self.drv.write_block(self.block_idx, &block).await.unwrap();
+                    self.block_idx += 1;
+                    self.should_read = true;
+                    return Ok(BLOCK_SIZE.into());
+                }
+
+                if self.should_read {
+                    self.drv
+                        .read_block(self.block_idx, &mut self.block)
+                        .await
+                        .unwrap();
+                    self.should_read = false;
+                }
+
+                let updated_bytes_size;
+                let bs_usize: usize = BLOCK_SIZE.into();
+                if (new_offset / bs_usize) > 0 {
+                    updated_bytes_size = (BLOCK_SIZE - self.offset_in_block).into();
+                    self.block.0[self.offset_in_block.into()..]
+                        .copy_from_slice(&buf[..updated_bytes_size]);
+                    self.retry_write().await?;
+                    self.block_idx += 1;
+                    self.offset_in_block = 0;
+                    self.should_read = true;
+                } else {
+                    self.block.0[self.offset_in_block.into()..new_offset.into()]
+                        .copy_from_slice(buf);
+                    self.offset_in_block = new_offset.try_into().unwrap();
+                    updated_bytes_size = buf.len();
+                    self.retry_write().await?;
+                }
+                assert!(self.block_idx < self.max_blocks);
+                Ok(updated_bytes_size)
+            }
+        }
+
+        impl<'a, T: sdmmc::Instance> embedded_io_async::Seek for SdmmcInmemStorage<'a, T> {
+            async fn seek(&mut self, pos: embedded_io_async::SeekFrom) -> Result<u64, Self::Error> {
+                match pos {
+                    embedded_io_async::SeekFrom::Start(v) => {
+                        let mb: u64 = self.max_blocks.into();
+                        assert!(v < mb * 512);
+                        let bs: u64 = BLOCK_SIZE.into();
+                        self.block_idx = (v / bs).try_into().unwrap();
+                        self.offset_in_block = (v % bs).try_into().unwrap();
+                        let r = <u32 as Into<u64>>::into(self.block_idx) * 512
+                            + <u16 as Into<u64>>::into(self.offset_in_block);
+                        assert!(r == v);
+                        #[cfg(sddebug)]
+                        fmt::trace!(
+                            "seeking to addr {:x} from start , new block idx {}, new offset {}",
+                            v,
+                            self.block_idx,
+                            self.offset_in_block
+                        );
+                    }
+                    embedded_io_async::SeekFrom::End(v) => {
+                        let bs: i64 = BLOCK_SIZE.into();
+                        self.block_idx = self
+                            .max_blocks
+                            .checked_add_signed((v / bs).try_into().unwrap())
+                            .unwrap();
+                        self.offset_in_block = 0;
+                        let neg_offs: u16 = (v % bs).unsigned_abs().try_into().unwrap();
+
+                        if neg_offs > 0 {
+                            self.block_idx -= 1;
+                            self.offset_in_block = 512 - neg_offs;
+                        }
+                    }
+                    embedded_io_async::SeekFrom::Current(v) => {
+                        let c: i64 = <u32 as Into<i64>>::into(self.block_idx * 512)
+                            + <u16 as Into<i64>>::into(self.offset_in_block);
+                        #[cfg(sddebug)]
+                        fmt::trace!("seeking from cur with {}B; current {}B", v, c);
+                        assert!(c + v >= 0);
+                        let bs: i64 = BLOCK_SIZE.into();
+                        let upd = self
+                            .block_idx
+                            .checked_add_signed((v / bs).try_into().unwrap())
+                            .unwrap();
+                        self.block_idx = upd;
+                        let upd = (v % bs).unsigned_abs().try_into().unwrap();
+                        self.offset_in_block = upd;
+                    }
+                }
+                self.should_read = true;
+                let r = <u32 as Into<u64>>::into(self.block_idx) * 512
+                    + <u16 as Into<u64>>::into(self.offset_in_block);
+                Ok(r)
+            }
         }
 
         const LOG_NAME_MAX_BYTES: usize = 9;
@@ -654,22 +789,22 @@ pub mod hw_tasks {
             }
 
             let name = core::str::from_utf8(&buff);
-            if name.is_err() {
-                return heapless::String::from_str("00001.LOG").unwrap();
-            }
-            let name = name.unwrap();
+            let name = match name {
+                Ok(v) => v,
+                Err(_) => return heapless::String::from_str("00001.LOG").unwrap(),
+            };
+
             let name = name.strip_suffix(".LOG");
+            let name = match name {
+                Some(v) => v,
+                None => return heapless::String::from_str("00001.LOG").unwrap(),
+            };
 
-            if name.is_none() {
-                return heapless::String::from_str("00001.LOG").unwrap();
-            }
-
-            let name = name.unwrap();
             let lognum = name.parse::<u16>();
-            if lognum.is_err() {
-                return heapless::String::from_str("00001.LOG").unwrap();
-            }
-            let lognum = lognum.unwrap();
+            let lognum = match lognum {
+                Ok(v) => v,
+                Err(_) => return heapless::String::from_str("00001.LOG").unwrap(),
+            };
 
             let mut s = heapless::String::new();
             core::fmt::write(
@@ -680,27 +815,37 @@ pub mod hw_tasks {
             return s;
         }
 
-        fn prepare_for_next_log(
-            volume_mgr: &mut embedded_sdmmc::VolumeManager<SdDriver<'_>, TimeSource>,
+        async fn prepare_for_next_log<'a, IO, TP, OCC>(
+            root_dir: &mut embedded_fatfs::Dir<'a, IO, TP, OCC>,
         ) -> Result<
             heapless::String<LOG_NAME_MAX_BYTES>,
-            embedded_sdmmc::Error<hw_tasks::sdcard::Error>,
-        > {
-            let mut vol0 = volume_mgr.open_volume(embedded_sdmmc::VolumeIdx(0))?;
-            let mut dir = vol0.open_root_dir()?;
-            let mut last_log_txt = dir.open_file_in_dir(
-                "LAST_LOG.TXT",
-                embedded_sdmmc::Mode::ReadWriteCreateOrAppend,
-            )?;
+            embedded_fatfs::Error<<IO as ErrorType>::Error>,
+        >
+        where
+            IO: embedded_fatfs::ReadWriteSeek,
+            TP: embedded_fatfs::TimeProvider,
+            OCC: embedded_fatfs::OemCpConverter,
+        {
+            let mut last_log_txt = match root_dir.open_file("LAST_LOG.TXT").await {
+                Ok(f) => f,
+                Err(e) => match e {
+                    embedded_fatfs::Error::NotFound => root_dir.create_file("LAST_LOG.TXT").await?,
+                    _ => return Err(e),
+                },
+            };
+            last_log_txt.seek(SeekFrom::Start(0)).await?;
             let mut buff = [0u8; LOG_NAME_MAX_BYTES];
-            last_log_txt.seek_from_start(0)?;
-            let amt = last_log_txt.read(&mut buff)?;
-            let logname = &get_logname(&buff[..amt]);
-            last_log_txt.seek_from_start(0)?;
-            last_log_txt.write(logname.as_bytes())?;
-
-            fmt::debug!("next log name{:?}", logname.as_str());
-
+            let logname = match last_log_txt.read_exact(&mut buff).await {
+                Ok(_) => get_logname(&buff),
+                Err(e) => match e {
+                    embedded_io_async::ReadExactError::UnexpectedEof => get_logname(&buff[0..1]),
+                    embedded_io_async::ReadExactError::Other(e) => return Err(e),
+                },
+            };
+            last_log_txt.seek(SeekFrom::Start(0)).await?;
+            last_log_txt.write(logname.as_bytes()).await?;
+            last_log_txt.flush().await?;
+            fmt::debug!("next log name {:?}", logname.as_str());
             Ok(logname.clone())
         }
 
@@ -718,60 +863,75 @@ pub mod hw_tasks {
                 p.PC11,
                 Default::default(),
             );
+            fmt::unwrap!(sddriver.init_card(time::mhz(24)).await);
             fmt::debug!("Configured clock: {}", sddriver.clock().0);
-            fmt::unwrap!(sddriver.init_card(time::mhz(25)).await);
-            let sddriver = SdDriver {
-                sddriver: core::cell::Cell::new(Some(sddriver)),
-            };
-            let mut volume_mgr = embedded_sdmmc::VolumeManager::new(sddriver, TimeSource());
-            let mut consumer = logger::get_consumer().unwrap();
 
-            let logname = match prepare_for_next_log(&mut volume_mgr) {
+            #[cfg(feature = "sdmmc_perf_test")]
+            {
+                fmt::debug!("writing 25 MB");
+                const MB25_IN_BLOCKS: usize = 25 * 1024 * 1024 /512;
+                let mut block = sdmmc::DataBlock([0u8; 512]);
+                block.fill(0xFF);
+                let mut block_idx: u32 = 0;
+                let tstart = embassy_time::Instant::now();
+                let mut prev_mb = 0;
+                for i in 0..MB25_IN_BLOCKS {
+                    while let Err(e) = sddriver.write_block(block_idx, &block).await {
+                        fmt::debug!("err {}", e);
+                    }
+                    block_idx += 1;
+                    let kb_written = block_idx as u64 * 512/1024;
+                    let mb_written = kb_written/1024;
+                    if mb_written != prev_mb {
+                        let tnow = embassy_time::Instant::now();
+                        if let Some(rate) = kb_written.checked_div((tnow - tstart).as_secs()) {
+                            fmt::debug!("written {}KB, rate {} KB/s", kb_written, rate);
+                        }
+                        prev_mb = mb_written;
+                    }
+                }
+                let tend = embassy_time::Instant::now();
+                fmt::debug!("writing done in: {}ms", (tend - tstart).as_millis());
+                return;
+            }
+
+            let options = FsOptions::new();
+
+            let sdcard = SdmmcInmemStorage::new(sddriver);
+            let fs = fmt::unwrap!(FileSystem::new(sdcard, options).await);
+            let mut root = fs.root_dir();
+            let log_name = match prepare_for_next_log(&mut root).await {
                 Ok(v) => v,
-                Err(_e) => {
-                    #[cfg(feature = "defmt")]
-                    fmt::error!(
-                        "SD failed to prepare for next log {}",
-                        defmt::Debug2Format(&_e)
-                    );
-                    return;
+                Err(e) => {
+                    fmt::debug!("preparing for next log failed {:?}", e);
+                    panic!();
                 }
             };
 
-            {
-                let mut vol = volume_mgr
-                    .open_volume(embedded_sdmmc::VolumeIdx(0))
-                    .unwrap();
-                let mut dir = vol.open_root_dir().unwrap();
-                let _file = dir
-                    .open_file_in_dir(
-                        logname.as_str(),
-                        embedded_sdmmc::Mode::ReadWriteCreateOrTruncate,
-                    )
-                    .unwrap();
-            }
-
-            let mut read_buf = [0u8; 512];
-
+            let mut logf = fmt::unwrap!(root.create_file(&log_name).await);
+            const BS_USIZE: usize = BLOCK_SIZE as usize;
+            const MAX_BLOCKS_TO_READ: usize = 7;
+            let mut read_buf = [0u8; BS_USIZE * MAX_BLOCKS_TO_READ];
             let mut bytes_written: usize = 0;
+            let mut consumer = fmt::unwrap!(logger::get_consumer());
+            logf.seek(SeekFrom::Start(0)).await.unwrap();
+            logger::notify_driver_state(true);
             loop {
-                let amt = consumer.pop_slice(&mut read_buf);
+                let blocks_in_buf = consumer.len() / BS_USIZE;
+                if blocks_in_buf == 0 {
+                    embassy_futures::yield_now().await;
+                    continue;
+                }
+                let bytes_to_pop = (blocks_in_buf * BS_USIZE).min(BS_USIZE * MAX_BLOCKS_TO_READ);
+                let amt = consumer.pop_slice(&mut read_buf[..bytes_to_pop]);
                 if amt == 0 {
                     embassy_futures::yield_now().await;
                     continue;
                 }
-                let mut vol = volume_mgr
-                    .open_volume(embedded_sdmmc::VolumeIdx(0))
-                    .unwrap();
-                let mut dir = vol.open_root_dir().unwrap();
-                let mut file = dir
-                    .open_file_in_dir(logname.as_str(), embedded_sdmmc::Mode::ReadWriteAppend)
-                    .unwrap();
-
-                file.write(&mut read_buf[..amt]).unwrap();
                 bytes_written = bytes_written.overflowing_add(amt).0;
+                fmt::unwrap!(logf.write_all(&mut read_buf[..amt]).await);
+                fmt::unwrap!(logf.flush().await);
                 fmt::trace!("SD wrote {} bytes", bytes_written);
-                embassy_futures::yield_now().await;
             }
         }
     }

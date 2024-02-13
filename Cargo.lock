@@ -57,6 +57,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-iterator"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f457e72b88b87c911a455c0f7b562c8e85d32d3ef4d41df156c4b8abf1777ae4"
+
+[[package]]
 name = "async-lock"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -112,6 +118,7 @@ name = "bsp"
 version = "0.1.0"
 dependencies = [
  "async-io",
+ "async-iterator",
  "cortex-m",
  "cortex-m-rt",
  "defmt",
@@ -125,7 +132,6 @@ dependencies = [
  "embassy-usb",
  "embedded-fatfs",
  "embedded-io-async",
- "embedded-sdmmc",
  "heapless 0.7.17",
  "icm42688",
  "imu",
@@ -532,9 +538,14 @@ dependencies = [
 
 [[package]]
 name = "embedded-fatfs"
-version = "0.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33c853721b4b95ccb0dd69c3cfed67a5fda3c24535d17027d4e80914d4aaff8d"
+version = "0.1.0"
+source = "git+https://github.com/MabezDev/embedded-fatfs?branch=master#52bcbc008d67034f3886ea525198c27619a6eb4c"
+dependencies = [
+ "async-iterator",
+ "bitflags",
+ "defmt",
+ "embedded-io-async",
+]
 
 [[package]]
 name = "embedded-hal"
@@ -588,17 +599,6 @@ checksum = "3ff09972d4073aa8c299395be75161d582e7629cd663171d62af73c8d50dba3f"
 dependencies = [
  "defmt",
  "embedded-io",
-]
-
-[[package]]
-name = "embedded-sdmmc"
-version = "0.6.0"
-source = "git+https://github.com/rust-embedded-community/embedded-sdmmc-rs?branch=develop#ae5e1165d86dfaeee80cdb2547775183463066c5"
-dependencies = [
- "byteorder",
- "embedded-hal 1.0.0",
- "heapless 0.7.17",
- "log",
 ]
 
 [[package]]
@@ -877,6 +877,7 @@ checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 name = "logger"
 version = "0.1.0"
 dependencies = [
+ "defmt",
  "embassy-sync 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ringbuf",
  "static_cell",
@@ -1196,7 +1197,6 @@ dependencies = [
  "embassy-futures",
  "embassy-time",
  "heapless 0.7.17",
- "imu",
  "logger",
  "mavlink",
  "micromath",
@@ -1204,7 +1204,6 @@ dependencies = [
  "panic-probe",
  "ringbuf",
  "scheduler",
- "serial-manager",
  "singleton",
  "static_cell",
 ]

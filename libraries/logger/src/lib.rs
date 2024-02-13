@@ -81,18 +81,41 @@ pub fn free() -> usize {
     })
 }
 
+pub fn notify_driver_state(is_ready: bool) {
+    LoggerBuf::get_singleton().lock(|v| {
+        let mut rc = v.borrow_mut();
+        let lb = rc.as_mut().unwrap();
+        lb.log_driver_ready = is_ready;
+    });
+}
+
 pub fn log(data: &[u8]) {
     LoggerBuf::get_singleton().lock(|v| {
         let mut rc = v.borrow_mut();
         let lb = rc.as_mut().unwrap();
+        if !lb.log_driver_ready {
+            return;
+        }
         let prod = lb.producer.as_mut().unwrap();
-        if !(prod.free_len() < data.len() && lb.consumer.is_none()) {
-            prod.push_slice(data);
+        let pushed;
+        if lb.consumer.is_none() {
+            pushed = prod.push_slice(data);
+            lb.bytes_written = lb
+                .bytes_written
+                .checked_add(data.len().try_into().unwrap())
+                .unwrap();
+            defmt::debug!("logger: wrote {} bytes", lb.bytes_written);
+        } else {
+            panic!("noone took consumer, check your hardware log task");
+        }
+
+        if pushed != data.len() {
+            panic!("pushed not all data")
         }
     });
 }
 
-const BUF_MAX: usize = 2048;
+const BUF_MAX: usize = 10*1024;
 type RBData = u8;
 pub type Consumer = ringbuf::StaticConsumer<'static, RBData, BUF_MAX>;
 pub type Producer = ringbuf::StaticProducer<'static, RBData, BUF_MAX>;
@@ -100,6 +123,8 @@ pub type Producer = ringbuf::StaticProducer<'static, RBData, BUF_MAX>;
 struct LoggerBuf {
     consumer: Option<Consumer>,
     producer: Option<Producer>,
+    log_driver_ready: bool,
+    bytes_written: u32,
 }
 
 impl LoggerBuf {
@@ -113,6 +138,8 @@ impl LoggerBuf {
         Self {
             producer: Some(producer),
             consumer: Some(consumer),
+            log_driver_ready: false,
+            bytes_written: 0,
         }
     }
 }

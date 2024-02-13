@@ -23,9 +23,9 @@ micromath = { version = "2.1.0" }
 
 bsp = { version = "*", path = "../../bsp" }
 scheduler = { version = "*", path = "../../libraries/scheduler" }
-serial-manager = { version = "*", path = "../../libraries/serial-manager" }
+# serial-manager = { version = "*", path = "../../libraries/serial-manager" }
 singleton = { version = "*", path = "../../libraries/singleton" }
-imu = { version = "*", path = "../../libraries/imu" }
+# imu = { version = "*", path = "../../libraries/imu" }
 logger = { version = "*", path = "../../libraries/logger" }
 
 [dependencies.embassy-executor]
