@@ -7,65 +7,12 @@ workspace = { members = [
   "libraries/serial-manager",
   "libraries/singleton",
   "libraries/singleton/singleton-procmacro",
-  "libraries/imu", "examples/pwm",
+  "libraries/imu",
+  "examples/pwm",
   "libraries/servo-control",
   "examples/sdcard",
   "libraries/logger",
-] }
-
-[package]
-name = "embassy-template"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-cortex-m-rt = { version = "0.7.0", optional = true }
-defmt = { version = "0.3", optional = true }
-defmt-rtt = { version = "0.4", optional = true }
-panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
-
-bsp = { version = "*", path = "bsp" }
-
-[dependencies.embassy-executor]
-version = "*"
-git = "https://github.com/embassy-rs/embassy.git"
-rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
-features = ["nightly"]
-
-[dependencies.embassy-time]
-version = "*"
-git = "https://github.com/embassy-rs/embassy.git"
-rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
-
-[dependencies.embassy-futures]
-version = "*"
-git = "https://github.com/embassy-rs/embassy.git"
-rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
-
-[features]
-default = [
-  "h743vi",
-  "defmt",
-  # "f103c8",
-  # "std"
-]
-
-stm32 = ["cortex-m-rt", "embassy-executor/arch-cortex-m", "bsp/memoryx"]
-
-f103c8 = ["stm32", "bsp/f103c8"]
-h743vi = ["bsp/h743vi", "stm32"]
-
-std = ["bsp/std"]
-
-defmt = [
-  "dep:defmt",
-  "defmt-rtt",
-  "panic-probe",
-  "embassy-executor/defmt",
-  # "bsp/defmt",
-]
+], resolver = "2" }
 
 
 # cargo build/run
@@ -92,7 +39,7 @@ debug = 2
 debug-assertions = true # <-
 incremental = true
 opt-level = "s"         # <-
-overflow-checks = true # <-
+overflow-checks = true  # <-
 #
 # cargo build/run --release
 [profile.release]

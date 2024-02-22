@@ -77,12 +77,12 @@ git = "https://github.com/embassy-rs/embassy.git"
 rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
-default = [
+# default = [
   # "matek_h743",
   # "defmt"
   # "h743vi"
-  "matek_h743"
-]
+  # "matek_h743"
+# ]
 
 stm32 = [
   "embassy-stm32",
@@ -110,15 +110,17 @@ f103c8 = ["stm32", "embassy-stm32/stm32f103c8"]
 h743vi = [
   "stm32",
   "embassy-stm32/stm32h743vi",
+  "multiprio"
   # "nalgebra",
   # "icm42688",
   # "micromath",
   # "mavlink",
 ]
+multiprio = []
+sdcard = []
+imu = []
 
-h743vi_imu = ["nalgebra", "icm42688"]
-
-matek_h743 = ["h743vi", "h743vi_imu", "heapless", "embedded-fatfs"]
+matek_h743 = ["h743vi", "heapless", "embedded-fatfs", "nalgebra", "icm42688", "sdcard", "imu"]
 
 std = [
   "embassy-executor/arch-std",

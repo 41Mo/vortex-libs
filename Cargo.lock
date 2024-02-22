@@ -469,20 +469,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "embassy-template"
-version = "0.1.0"
-dependencies = [
- "bsp",
- "cortex-m-rt",
- "defmt",
- "defmt-rtt",
- "embassy-executor",
- "embassy-futures",
- "embassy-time",
- "panic-probe",
-]
-
-[[package]]
 name = "embassy-time"
 version = "0.3.0"
 source = "git+https://github.com/embassy-rs/embassy.git?rev=9cd0beaee37f9e1cc885ad162b63bca795478227#9cd0beaee37f9e1cc885ad162b63bca795478227"
