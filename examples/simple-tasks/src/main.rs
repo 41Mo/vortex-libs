@@ -104,6 +104,7 @@ async fn main(_spawner: Spawner) {
 }
 
 #[cfg(not(feature = "defmt"))]
+#[cfg(not(feature = "std"))]
 mod nondefmt {
     use core::panic::PanicInfo;
     #[panic_handler]

@@ -302,7 +302,7 @@ pub mod hw_tasks {
         EXECUTOR_MED.on_interrupt()
     }
 
-    #[cfg(feature = "h743vi_imu")]
+    #[cfg(feature = "imu")]
     #[embassy_executor::task]
     pub async fn imu_task() {
         use embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice;
@@ -570,6 +570,7 @@ pub mod hw_tasks {
             }
         }
     }
+    #[cfg(feature="sdcard")]
     mod sdcard {
         use super::*;
         use embedded_fatfs::{FileSystem, FsOptions};
@@ -936,6 +937,6 @@ pub mod hw_tasks {
         }
     }
 
-    #[cfg(feature = "matek_h743")]
+    #[cfg(feature = "sdcard")]
     pub use sdcard::*;
 }

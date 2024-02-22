@@ -1,7 +1,11 @@
 pub struct Board;
 
 pub trait GenericBoard {
+    #[cfg(feature = "multiprio")]
     fn init() -> (embassy_executor::SendSpawner, embassy_executor::SendSpawner);
+
+    #[cfg(not(feature = "multiprio"))]
+    fn init();
 }
 
 #[allow(unused)]
