@@ -77,7 +77,7 @@ pub mod hw_tasks {
     }
 
     use super::*;
-    #[embassy_executor::task]
+    #[embassy_executor::task(pool_size = 8)]
     pub async fn serial_runner(portnum: u8, cfg: serial::Config) {
         let addr = std::net::SocketAddr::from_str(cfg.dev.as_str()).unwrap();
         let sock = Arc::new(Async::<UdpSocket>::bind(addr).unwrap());
@@ -94,7 +94,7 @@ pub mod hw_tasks {
         if cfg.options.enable_rx() && cfg.options.enable_tx() {
             let reader = port_reader(rx, prod, name, &client_addr);
             let writer = port_writer(tx, con, name, &client_addr);
-            embassy_futures::join::join(reader, writer);
+            embassy_futures::join::join(reader, writer).await;
         } else if cfg.options.enable_tx() {
             port_writer(tx, con, name, &client_addr).await
         } else if cfg.options.enable_rx() {
