@@ -124,7 +124,7 @@ pub mod hw_tasks {
             Option<std::net::SocketAddr>,
         >::new(None);
 
-        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(0));
+        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(1));
         let name = "Serial1";
 
         let reader = port_reader(rx, prod, name, &client_addr);
@@ -144,7 +144,7 @@ pub mod hw_tasks {
             Option<std::net::SocketAddr>,
         >::new(None);
 
-        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(0));
+        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(2));
         let name = "Serial2";
 
         let reader = port_reader(rx, prod, name, &client_addr);
