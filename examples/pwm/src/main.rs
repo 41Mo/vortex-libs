@@ -15,7 +15,9 @@ use {defmt_rtt as _, panic_probe as _};
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     Board::init();
-
+    serial_manager::bind_ports(&[
+        (0, 0),
+    ]);
     {
         use servo_control::*;
         setup_channel(
@@ -34,7 +36,7 @@ async fn main(_spawner: Spawner) {
         control_surface_onoff(ControlSurface::Aileron, true);
     }
 
-    fmt::unwrap!(_spawner.spawn(serial0_runner(serial::Config::default())));
+    fmt::unwrap!(_spawner.spawn(serial_runner(0, serial::Config::default())));
     fmt::unwrap!(_spawner.spawn(bsp::pwm_task()));
     tasks::start_tasks().await;
 }

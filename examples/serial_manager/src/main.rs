@@ -59,24 +59,21 @@ async fn main(_spawner: Spawner) {
 
     #[cfg(not(feature = "std"))]
     {
-        fmt::unwrap!(_spawner.spawn(serial_runner(
-            SerialPortName::Serial0 as u8,
-            serial::Config::default().baud(115_200)
-        )));
+        let mut cfg = serial::Config::default();
+        cfg.baud = 115_200;
+        fmt::unwrap!(_spawner.spawn(serial_runner(SerialPortName::Serial0 as u8, cfg)));
     }
 
     #[cfg(feature = "std")]
     {
+        use std::str::FromStr;
         for arg in std::env::args() {
             fmt::debug!("arg: {}", arg);
         }
-        fmt::unwrap!(_spawner.spawn(serial_runner(
-            SerialPortName::Serial0 as u8,
-            serial_manager::Config::default().device(
-                heapless::String::from_str("127.0.0.1:11210")
-                    .expect("Unable to make heapless string from str")
-            ),
-        )));
+        let mut cfg = serial_manager::Config::default();
+        cfg.dev = heapless::String::from_str("127.0.0.1:11210")
+            .expect("Unable to make heapless string from str");
+        fmt::unwrap!(_spawner.spawn(serial_runner(SerialPortName::Serial0 as u8, cfg)));
     }
 
     let context = GlobalContext {

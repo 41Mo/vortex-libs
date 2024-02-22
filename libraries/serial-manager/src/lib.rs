@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(type_alias_impl_trait)]
 
+use bitfield_struct::bitfield;
 use core::cell::RefCell;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use heapless::Vec;
@@ -77,48 +78,54 @@ struct SerialWrapper {
     u_rb: Option<SerialPort>,
     p_rb: Option<(RingBufReadRef, RingBufWriteRef)>,
 }
+#[bitfield(u8)]
+pub struct Options {
+    pub enable_rx: bool,
+    pub enable_tx: bool,
+    pub swap_rx_tx: bool,
+    #[bits(5)]
+    __: u8,
+}
 
 #[cfg(not(feature = "std"))]
 mod config {
+    use crate::Options;
     #[derive(Clone, Copy, Debug)]
     pub struct Config {
         pub baud: u32,
-        // swap_rx_tx: bool,
+        pub options: Options,
     }
 
     impl Config {
         pub fn default() -> Self {
             Self {
                 baud: 57_600,
-                // swap_rx_tx: false,
+                options: Options::new()
+                    .with_enable_rx(true)
+                    .with_enable_tx(true)
+                    .with_swap_rx_tx(false),
             }
         }
-
-        pub fn baud(&mut self, b: u32) -> Self {
-            self.baud = b;
-            *self
-        }
-
-        // pub fn swap_rx_tx(&mut self, do_swap: bool) -> Self {
-        //     todo!()
-        // }
     }
 }
 
 #[cfg(feature = "std")]
 mod config {
+    use crate::Options;
     #[derive(Clone, Debug)]
     pub struct Config {
         pub dev: heapless::String<255>,
+        pub options: Options,
     }
     impl Config {
         pub fn default() -> Self {
             Self {
                 dev: heapless::String::new(),
+                options: Options::new()
+                    .with_enable_rx(true)
+                    .with_enable_tx(true)
+                    .with_swap_rx_tx(false),
             }
-        }
-        pub fn device(self, dev: heapless::String<255>) -> Self {
-            Self { dev }
         }
     }
 }

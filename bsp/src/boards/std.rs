@@ -91,9 +91,14 @@ pub mod hw_tasks {
         let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(portnum));
         let name = stringify!("Serial" + portnum);
 
-        let reader = port_reader(rx, prod, name, &client_addr);
-        let writer = port_writer(tx, con, name, &client_addr);
-
-        embassy_futures::join::join(reader, writer).await;
+        if cfg.options.enable_rx() && cfg.options.enable_tx() {
+            let reader = port_reader(rx, prod, name, &client_addr);
+            let writer = port_writer(tx, con, name, &client_addr);
+            embassy_futures::join::join(reader, writer);
+        } else if cfg.options.enable_tx() {
+            port_writer(tx, con, name, &client_addr).await
+        } else if cfg.options.enable_rx() {
+            port_reader(rx, prod, name, &client_addr).await
+        }
     }
 }
