@@ -2,11 +2,11 @@
 #![cfg_attr(not(feature = "std"), no_main)]
 #![feature(type_alias_impl_trait)]
 
-use core::cell::RefCell;
+use core::{cell::RefCell, str::FromStr};
 use embassy_executor::Spawner;
 use embassy_time;
 
-use bsp::{Board, GenericBoard, serial0_runner};
+use bsp::{serial0_runner, Board, GenericBoard};
 use serial_manager as serial;
 mod fmt;
 
@@ -29,10 +29,8 @@ impl SerialTask1 {
 }
 
 fn serial_comm(_cts: &GlobalContext) {
+    fmt::debug!("task");
     let port = &mut _cts.serial_task.borrow_mut().port;
-    if port.available() == 0 {
-        return;
-    }
     while let Some(v) = port.read() {
         fmt::debug!("{}", v)
     }
@@ -44,17 +42,30 @@ fn serial_comm(_cts: &GlobalContext) {
 async fn main(_spawner: Spawner) {
     Board::init();
 
-    fmt::unwrap!(_spawner.spawn(serial0_runner(
-        serial::Config::default().baud(115_200)
-    )));
+    #[cfg(not(feature = "std"))]
+    {
+        fmt::unwrap!(_spawner.spawn(serial0_runner(serial::Config::default().baud(115_200))));
+    }
+
+    #[cfg(feature = "std")]
+    {
+        for arg in std::env::args() {
+            fmt::debug!("arg: {}", arg);
+        }
+        fmt::unwrap!(_spawner.spawn(serial0_runner(
+            serial_manager::Config::default().device(
+                heapless::String::from_str("127.0.0.1:11210")
+                    .expect("Unable to make heapless string from str")
+            ),
+        )));
+
+    }
 
     let context = GlobalContext {
         serial_task: SerialTask1::new().into(),
     };
-
     let serial_task = scheduler::task!(serial_comm(&context));
-    let tasks = [scheduler::Task::new(serial_task, 0.2, "task1")];
-
+    let tasks = [scheduler::Task::new(serial_task, 1.0, "task1")];
     const SCHED_LOOP_RATE_HZ: u32 = 100;
     // this is a syncronous scheduler
     let mut s = scheduler::Scheduler::new(tasks, SCHED_LOOP_RATE_HZ);
@@ -67,6 +78,7 @@ async fn main(_spawner: Spawner) {
 }
 
 #[cfg(not(feature = "defmt"))]
+#[cfg(not(feature = "std"))]
 mod nondefmt {
     use core::panic::PanicInfo;
     #[panic_handler]

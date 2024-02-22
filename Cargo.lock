@@ -1263,9 +1263,11 @@ dependencies = [
  "embassy-executor",
  "embassy-futures",
  "embassy-time",
+ "heapless 0.7.17",
  "panic-probe",
  "scheduler",
  "serial-manager",
+ "static_cell",
 ]
 
 [[package]]

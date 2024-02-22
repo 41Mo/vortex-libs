@@ -59,12 +59,12 @@ impl SerialPort {
     pub fn read(&mut self) -> Option<u8> {
         self.reader.pop()
     }
-    pub fn write(&mut self, byte:u8) -> Result<(), ()> {
+    pub fn write(&mut self, byte: u8) -> Result<(), ()> {
         self.writer.push(byte).map_err(|_| ())
     }
     pub fn write_slice(&mut self, bytes: &[u8]) -> Result<(), ()> {
         if self.writer.push_slice(bytes) < bytes.len() {
-            return Err(())
+            return Err(());
         }
         Ok(())
     }
@@ -82,29 +82,53 @@ struct SerialWrapper {
     p_rb: Option<(RingBufReadRef, RingBufWriteRef)>,
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Config {
-    pub baud: u32,
-    // swap_rx_tx: bool,
+#[cfg(not(feature = "std"))]
+mod config {
+    #[derive(Clone, Copy, Debug)]
+    pub struct Config {
+        pub baud: u32,
+        // swap_rx_tx: bool,
+    }
+
+    impl Config {
+        pub fn default() -> Self {
+            Self {
+                baud: 57_600,
+                // swap_rx_tx: false,
+            }
+        }
+
+        pub fn baud(&mut self, b: u32) -> Self {
+            self.baud = b;
+            *self
+        }
+
+        // pub fn swap_rx_tx(&mut self, do_swap: bool) -> Self {
+        //     todo!()
+        // }
+    }
 }
 
-impl Config {
-    pub fn default() -> Self {
-        Self {
-            baud: 57_600,
-            // swap_rx_tx: false,
+#[cfg(feature = "std")]
+mod config {
+    #[derive(Clone, Debug)]
+    pub struct Config {
+        pub dev: heapless::String<255>,
+    }
+    impl Config {
+        pub fn default() -> Self {
+            Self { dev: heapless::String::new() }
+        }
+        pub fn device(self, dev: heapless::String<255>) -> Self {
+            Self {
+                dev
+            }
         }
     }
-
-    pub fn baud(&mut self, b: u32) -> Self {
-        self.baud = b;
-        *self
-    }
-
-    // pub fn swap_rx_tx(&mut self, do_swap: bool) -> Self {
-    //     todo!()
-    // }
 }
+
+// reexport
+pub use config::*;
 
 pub fn find_by_protocol(protocol: Protocol) -> Option<SerialPort> {
     let ports = &SERIAL_MANAGER
@@ -166,7 +190,7 @@ pub fn bind_port(
 mod tests {
     #[test]
     fn config_nice() {
-        let cfg = crate::Config::default().baud(115_200);
+        let cfg = crate::config::default().baud(115_200);
         println!("cfg {:?}", cfg);
     }
 }
