@@ -43,6 +43,7 @@ default = [
 stm32 = ["cortex-m-rt", "embassy-executor/arch-cortex-m", "bsp/memoryx"]
 
 h743vi = ["bsp/h743vi", "stm32"]
+f103c8 = ["bsp/f103c8", "stm32"]
 
 std = ["bsp/std"]
 

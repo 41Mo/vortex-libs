@@ -26,21 +26,8 @@ impl super::GenericBoard for super::Board {
 
         let _ = embassy_stm32::init(config);
 
-        serial1_bind();
-
         unsafe { interrupt::enable() };
     }
-}
-
-fn serial1_bind() {
-    let sc1: &'static mut serial::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-
-    let sc2: &'static mut serial::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-    let (p1, c1) = sc1.split_ref();
-    let (p2, c2) = sc2.split_ref();
-    serial::bind_port(serial::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
 }
 
 pub mod hw_tasks {
@@ -92,7 +79,16 @@ pub mod hw_tasks {
         }
     }
 
-    #[embassy_executor::task]
+    #[embassy_executor::task(pool_size=3)]
+    pub async fn serial_runner(port_num: u8, cfg: serial::Config) {
+        match port_num {
+            0 => serial1_runner(cfg).await,
+            1 => todo!(),
+            2 => todo!(),
+            _ => panic!("wrong serial num"),
+        }
+    }
+
     pub async fn serial1_runner(cfg: serial::Config) {
         let mut uc = usart::Config::default();
         uc.baudrate = cfg.baud;

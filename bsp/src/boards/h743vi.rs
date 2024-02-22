@@ -139,7 +139,7 @@ pub mod hw_tasks {
         }
     }
 
-    #[embassy_executor::task]
+    #[embassy_executor::task(pool_size=3)]
     pub async fn serial_runner(port: u8, cfg: serial_manager::Config) {
         match port {
             0 => serial0_runner(cfg).await,
