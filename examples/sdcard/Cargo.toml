@@ -1,5 +1,5 @@
 [package]
-name = "serial_manager"
+name = "sdcard"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,9 +11,22 @@ defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
+static_cell = { version = "1.1", features = ["nightly"] }
+nalgebra = { version = "0.32.3", default-features = false }
+ringbuf = { version = "0.3.3", default-features = false }
+mavlink = { version = "0.12.2", features = [
+  "embedded",
+  "common",
+], default-features = false }
+heapless = "0.7.16"
+micromath = { version = "2.1.0" }
+
 bsp = { version = "*", path = "../../bsp" }
-scheduler = { version = "*", path="../../libraries/scheduler"}
-serial-manager = { version = "*", path="../../libraries/serial-manager"}
+scheduler = { version = "*", path = "../../libraries/scheduler" }
+# serial-manager = { version = "*", path = "../../libraries/serial-manager" }
+singleton = { version = "*", path = "../../libraries/singleton" }
+# imu = { version = "*", path = "../../libraries/imu" }
+logger = { version = "*", path = "../../libraries/logger" }
 
 [dependencies.embassy-executor]
 version = "*"
@@ -32,19 +45,15 @@ git = "https://github.com/embassy-rs/embassy.git"
 rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
-default = [
-  "h743vi",
-  "defmt",
-]
+default = ["matek_h743", "defmt"]
 
 stm32 = ["cortex-m-rt", "embassy-executor/arch-cortex-m", "bsp/memoryx"]
-
-h743vi = ["bsp/h743vi", "stm32"]
+matek_h743 = ["stm32", "bsp/matek_h743"]
 
 defmt = [
   "dep:defmt",
   "defmt-rtt",
   "panic-probe",
   "embassy-executor/defmt",
-  # "bsp/defmt",
+  "bsp/defmt",
 ]

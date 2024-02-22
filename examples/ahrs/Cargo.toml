@@ -26,27 +26,35 @@ scheduler = { version = "*", path = "../../libraries/scheduler" }
 serial-manager = { version = "*", path = "../../libraries/serial-manager" }
 singleton = { version = "*", path = "../../libraries/singleton" }
 imu = { version = "*", path = "../../libraries/imu" }
+logger = { version = "*", path = "../../libraries/logger" }
 
 [dependencies.embassy-executor]
-version = "0.4.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 features = ["nightly"]
 
 [dependencies.embassy-time]
-version = "0.2.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [dependencies.embassy-futures]
-version = "0.1.0"
+version = "*"
 git = "https://github.com/embassy-rs/embassy.git"
-rev = "713457ce0087efc2bcf81653feb0f1503c190e53"
+rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
 default = ["matek_h743", "defmt"]
 
-stm32 = ["cortex-m-rt", "embassy-executor/arch-cortex-m", "bsp/memoryx"]
+stm32 = [
+  "cortex-m-rt",
+  # "embassy-executor/executor-thread",
+  # "embassy-executor/integrated-timers",
+  "embassy-executor/arch-cortex-m",
+  # "embassy-executor/executor-interrupt",
+  "bsp/memoryx",
+]
 matek_h743 = ["stm32", "bsp/matek_h743"]
 
 defmt = [

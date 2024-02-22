@@ -6,6 +6,7 @@
 mod gcs;
 mod ins;
 
+#[embassy_executor::task]
 pub(crate) async fn start_tasks() -> ! {
     let serial_tx = scheduler::task!(gcs::update_send());
     let serial_rx = scheduler::task!(gcs::update_recieve());

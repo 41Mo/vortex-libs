@@ -54,11 +54,12 @@ impl INS {
     }
 
     fn update(&mut self) {
-        if self.imu.len() == 0 {
-            return;
-        }
-        let (acc, gyr) = self.imu.pop().unwrap();
-        let dt = 0.01;
+        let (acc, gyr, dt) = match self.imu.pop() {
+            Some(v) => v,
+            None => return,
+        };
+        let dt = (dt as f32)/1000.0;
+
         let a_enu = self.dcm * acc;
         let mut w_enu = Vector3F::zeros();
         w_enu[0] = a_enu[1] * -self.rad_corr_c;
@@ -71,6 +72,17 @@ impl INS {
         );
         self.is_anles_updated = false;
         self.dcm += (self.dcm * w_body_hat - w_enu_hat * self.dcm) * dt;
+        self.attitude_update();
+        let mut lacc = [0.0; 3];
+        let mut lgyr = [0.0; 3];
+        lacc.copy_from_slice(acc.as_slice());
+        lgyr.copy_from_slice(gyr.as_slice());
+        logger::log_msg(logger::LogMessages::LogINS(logger::INS {
+            sample_time: embassy_time::Instant::now().as_micros(),
+            att: [self.roll, self.pitch, self.yaw],
+            acc: lacc,
+            gyr: lgyr,
+        }));
     }
 
     fn attitude_update(&mut self) {

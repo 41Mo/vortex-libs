@@ -1,12 +1,11 @@
 pub struct Board;
 
 pub trait GenericBoard {
-    fn init();
+    fn init() -> (embassy_executor::SendSpawner, embassy_executor::SendSpawner);
 }
 
 #[allow(unused)]
 use super::*;
-
 
 #[cfg(feature = "f103c8")]
 pub mod f103c8;
@@ -20,7 +19,6 @@ pub mod h743vi;
 #[cfg(feature = "h743vi")]
 pub use h743vi::hw_tasks::*;
 
-
 #[cfg(feature = "std")]
 mod std;
 #[allow(unused)]
@@ -29,4 +27,3 @@ pub use std::hw_tasks::*;
 
 #[cfg(feature = "f407vg")]
 mod f407vg;
-
