@@ -2,13 +2,24 @@
 #![cfg_attr(not(feature = "std"), no_main)]
 #![feature(type_alias_impl_trait)]
 
-use core::{cell::RefCell, str::FromStr};
+use core::cell::RefCell;
 use embassy_executor::Spawner;
 use embassy_time;
 
-use bsp::{serial0_runner, Board, GenericBoard};
+use bsp::{serial_runner, Board, GenericBoard};
 use serial_manager as serial;
 mod fmt;
+
+#[repr(u8)]
+enum SerialProtocols {
+    Text,
+}
+
+#[repr(u8)]
+enum SerialPortName {
+    Serial0,
+    Serial1,
+}
 
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};
@@ -23,7 +34,7 @@ struct SerialTask1 {
 
 impl SerialTask1 {
     fn new() -> Self {
-        let port = serial::find_by_protocol(serial::Protocol::MavlinkV2).unwrap();
+        let port = serial::find_by_protocol(SerialProtocols::Text as u8).unwrap();
         Self { port }
     }
 }
@@ -41,10 +52,17 @@ fn serial_comm(_cts: &GlobalContext) {
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     Board::init();
+    serial_manager::bind_ports(&[
+        (SerialPortName::Serial0 as u8, SerialProtocols::Text as u8),
+        (SerialPortName::Serial1 as u8, SerialProtocols::Text as u8),
+    ]);
 
     #[cfg(not(feature = "std"))]
     {
-        fmt::unwrap!(_spawner.spawn(serial0_runner(serial::Config::default().baud(115_200))));
+        fmt::unwrap!(_spawner.spawn(serial_runner(
+            SerialPortName::Serial0 as u8,
+            serial::Config::default().baud(115_200)
+        )));
     }
 
     #[cfg(feature = "std")]
@@ -52,13 +70,13 @@ async fn main(_spawner: Spawner) {
         for arg in std::env::args() {
             fmt::debug!("arg: {}", arg);
         }
-        fmt::unwrap!(_spawner.spawn(serial0_runner(
+        fmt::unwrap!(_spawner.spawn(serial_runner(
+            SerialPortName::Serial0 as u8,
             serial_manager::Config::default().device(
                 heapless::String::from_str("127.0.0.1:11210")
                     .expect("Unable to make heapless string from str")
             ),
         )));
-
     }
 
     let context = GlobalContext {

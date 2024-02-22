@@ -81,37 +81,12 @@ impl super::GenericBoard for super::Board {
         let _ = embassy_stm32::init(config());
         interrupt::UART4.set_priority(interrupt::Priority::P2);
 
-        serial0_bind();
-        serial1_bind();
-
         let executor_high = EXECUTOR_HIGH.start(interrupt::UART4);
         let executor_med = EXECUTOR_MED.start(interrupt::UART5);
 
         unsafe { cortex_m::interrupt::enable() };
         (executor_high, executor_med)
     }
-}
-
-fn serial1_bind() {
-    let sc1: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-
-    let sc2: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-    let (p1, c1) = sc1.split_ref();
-    let (p2, c2) = sc2.split_ref();
-    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
-}
-
-fn serial0_bind() {
-    let sc1: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-
-    let sc2: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-    let (p1, c1) = sc1.split_ref();
-    let (p2, c2) = sc2.split_ref();
-    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 0, c1, p1, c2, p2);
 }
 
 pub mod hw_tasks {
@@ -165,6 +140,15 @@ pub mod hw_tasks {
     }
 
     #[embassy_executor::task]
+    pub async fn serial_runner(port: u8, cfg: serial_manager::Config) {
+        match port {
+            0 => serial0_runner(cfg).await,
+            1 => serial1_runner(cfg).await,
+            _ => panic!("no runner {}", port)
+
+        }
+    }
+
     pub async fn serial0_runner(_cfg: serial_manager::Config) {
         let p = unsafe { embassy_stm32::Peripherals::steal() };
         let (mut consumer, mut producer) = fmt::unwrap!(serial_manager::find_port_rb_ref(0));
@@ -272,7 +256,6 @@ pub mod hw_tasks {
         embassy_futures::join::join3(usb_runner, read, write).await;
     }
 
-    #[embassy_executor::task]
     pub async fn serial1_runner(cfg: serial_manager::Config) {
         let mut uc = usart::Config::default();
         uc.baudrate = cfg.baud;

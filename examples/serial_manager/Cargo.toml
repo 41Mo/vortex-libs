@@ -11,7 +11,7 @@ defmt = { version = "0.3", optional = true }
 defmt-rtt = { version = "0.4", optional = true }
 panic-probe = { version = "0.3", features = ["print-defmt"], optional = true }
 
-bsp = { version = "*", path = "../../bsp" }
+bsp = { version = "*", path = "../../bsp", default-features=false }
 scheduler = { version = "*", path="../../libraries/scheduler"}
 serial-manager = { version = "*", path="../../libraries/serial-manager"}
 static_cell = { version = "1.1", features = ["nightly"] }
@@ -35,8 +35,8 @@ rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
 default = [
-  "std"
-  # "h743vi",
+  # "std"
+  "h743vi",
   # "defmt",
 ]
 

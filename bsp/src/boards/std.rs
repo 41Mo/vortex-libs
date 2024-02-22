@@ -7,45 +7,7 @@ use std::net::UdpSocket;
 use std::sync::Arc;
 
 impl super::GenericBoard for super::Board {
-    fn init() {
-        serial0_bind();
-        serial1_bind();
-        serial2_bind();
-    }
-}
-
-fn serial0_bind() {
-    fmt::trace!("binding serial0");
-    let sc1: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-
-    let sc2: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-    let (p1, c1) = sc1.split_ref();
-    let (p2, c2) = sc2.split_ref();
-    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 0, c1, p1, c2, p2);
-}
-fn serial1_bind() {
-    fmt::trace!("binding serial1");
-    let sc1: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-
-    let sc2: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-    let (p1, c1) = sc1.split_ref();
-    let (p2, c2) = sc2.split_ref();
-    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
-}
-fn serial2_bind() {
-    fmt::trace!("binding serial2");
-    let sc1: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-
-    let sc2: &'static mut serial_manager::SerialRingBuf =
-        static_cell::make_static!(ringbuf::StaticRb::default());
-    let (p1, c1) = sc1.split_ref();
-    let (p2, c2) = sc2.split_ref();
-    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 2, c1, p1, c2, p2);
+    fn init() {}
 }
 
 pub mod hw_tasks {
@@ -116,7 +78,7 @@ pub mod hw_tasks {
 
     use super::*;
     #[embassy_executor::task]
-    pub async fn serial0_runner(cfg: serial::Config) {
+    pub async fn serial_runner(portnum: u8, cfg: serial::Config) {
         let addr = std::net::SocketAddr::from_str(cfg.dev.as_str()).unwrap();
         let sock = Arc::new(Async::<UdpSocket>::bind(addr).unwrap());
         let rx = sock.clone();
@@ -126,48 +88,8 @@ pub mod hw_tasks {
             Option<std::net::SocketAddr>,
         >::new(None);
 
-        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(0));
-        let name = "Serial0";
-
-        let reader = port_reader(rx, prod, name, &client_addr);
-        let writer = port_writer(tx, con, name, &client_addr);
-
-        embassy_futures::join::join(reader, writer).await;
-    }
-
-    #[embassy_executor::task]
-    pub async fn serial1_runner(cfg: serial::Config) {
-        let addr = std::net::SocketAddr::from_str(cfg.dev.as_str()).unwrap();
-        let sock = Arc::new(Async::<UdpSocket>::bind(addr).unwrap());
-        let rx = sock.clone();
-        let tx = sock.clone();
-        let client_addr = embassy_sync::mutex::Mutex::<
-            embassy_sync::blocking_mutex::raw::NoopRawMutex,
-            Option<std::net::SocketAddr>,
-        >::new(None);
-
-        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(1));
-        let name = "Serial1";
-
-        let reader = port_reader(rx, prod, name, &client_addr);
-        let writer = port_writer(tx, con, name, &client_addr);
-
-        embassy_futures::join::join(reader, writer).await;
-    }
-
-    #[embassy_executor::task]
-    pub async fn serial2_runner(cfg: serial::Config) {
-        let addr = std::net::SocketAddr::from_str(cfg.dev.as_str()).unwrap();
-        let sock = Arc::new(Async::<UdpSocket>::bind(addr).unwrap());
-        let rx = sock.clone();
-        let tx = sock.clone();
-        let client_addr = embassy_sync::mutex::Mutex::<
-            embassy_sync::blocking_mutex::raw::NoopRawMutex,
-            Option<std::net::SocketAddr>,
-        >::new(None);
-
-        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(2));
-        let name = "Serial2";
+        let (con, prod) = fmt::unwrap!(serial_manager::find_port_rb_ref(portnum));
+        let name = stringify!("Serial" + portnum);
 
         let reader = port_reader(rx, prod, name, &client_addr);
         let writer = port_writer(tx, con, name, &client_addr);

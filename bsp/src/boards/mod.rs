@@ -6,6 +6,7 @@ pub trait GenericBoard {
 
     #[cfg(not(feature = "multiprio"))]
     fn init();
+
 }
 
 #[allow(unused)]

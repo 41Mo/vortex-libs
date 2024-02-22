@@ -78,7 +78,7 @@ rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
 default = [
-  "std"
+  # "std"
   # "matek_h743",
   # "defmt"
   # "h743vi"
