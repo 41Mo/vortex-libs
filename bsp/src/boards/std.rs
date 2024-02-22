@@ -8,14 +8,14 @@ use std::sync::Arc;
 
 impl super::GenericBoard for super::Board {
     fn init() {
-        for i in 0..3 {
-            serial_bind(i);
-        }
+        serial0_bind();
+        serial1_bind();
+        serial2_bind();
     }
 }
 
-fn serial_bind(portnum: u8) {
-    fmt::trace!("binding serial {}", portnum);
+fn serial0_bind() {
+    fmt::trace!("binding serial0");
     let sc1: &'static mut serial_manager::SerialRingBuf =
         static_cell::make_static!(ringbuf::StaticRb::default());
 
@@ -23,7 +23,29 @@ fn serial_bind(portnum: u8) {
         static_cell::make_static!(ringbuf::StaticRb::default());
     let (p1, c1) = sc1.split_ref();
     let (p2, c2) = sc2.split_ref();
-    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, portnum, c1, p1, c2, p2);
+    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 0, c1, p1, c2, p2);
+}
+fn serial1_bind() {
+    fmt::trace!("binding serial1");
+    let sc1: &'static mut serial_manager::SerialRingBuf =
+        static_cell::make_static!(ringbuf::StaticRb::default());
+
+    let sc2: &'static mut serial_manager::SerialRingBuf =
+        static_cell::make_static!(ringbuf::StaticRb::default());
+    let (p1, c1) = sc1.split_ref();
+    let (p2, c2) = sc2.split_ref();
+    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 1, c1, p1, c2, p2);
+}
+fn serial2_bind() {
+    fmt::trace!("binding serial2");
+    let sc1: &'static mut serial_manager::SerialRingBuf =
+        static_cell::make_static!(ringbuf::StaticRb::default());
+
+    let sc2: &'static mut serial_manager::SerialRingBuf =
+        static_cell::make_static!(ringbuf::StaticRb::default());
+    let (p1, c1) = sc1.split_ref();
+    let (p2, c2) = sc2.split_ref();
+    serial_manager::bind_port(serial_manager::Protocol::MavlinkV2, 2, c1, p1, c2, p2);
 }
 
 pub mod hw_tasks {
