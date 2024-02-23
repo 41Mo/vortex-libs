@@ -16,9 +16,9 @@ struct SerialManager {
     ports: Mutex<CriticalSectionRawMutex, RefCell<Vec<SerialWrapper, MAX_SERIALNUM>>>,
 }
 const RINGBUF_SIZE: usize = 300;
-pub type RingBufWriteRef = ringbuf::StaticProducer<'static, u8, RINGBUF_SIZE>;
-pub type RingBufReadRef = ringbuf::StaticConsumer<'static, u8, RINGBUF_SIZE>;
-pub type SerialRingBuf = ringbuf::StaticRb<u8, RINGBUF_SIZE>;
+pub type RingBufWriteRef = embassy_sync::pipe::Writer<'static, CriticalSectionRawMutex, RINGBUF_SIZE>;
+pub type RingBufReadRef = embassy_sync::pipe::Reader<'static, CriticalSectionRawMutex, RINGBUF_SIZE>;
+pub type SerialRingBuf = embassy_sync::pipe::Pipe<CriticalSectionRawMutex, RINGBUF_SIZE>;
 
 pub struct SerialPort {
     reader: RingBufReadRef,
@@ -28,10 +28,12 @@ pub struct SerialPort {
 impl embedded_hal_02::serial::Read<u8> for SerialPort {
     type Error = Error;
     fn read(&mut self) -> nb::Result<u8, Self::Error> {
-        if self.reader.len() == 0 {
+        let mut byte = [0u8];
+        let r = self.reader.try_read(&mut byte);
+        if let Err(e) = r {
             return Err(nb::Error::Other(Error::NoData));
         }
-        Ok(self.reader.pop().unwrap())
+        Ok(byte[0])
     }
 }
 
@@ -39,9 +41,11 @@ impl embedded_hal_02::serial::Write<u8> for SerialPort {
     type Error = Error;
 
     fn write(&mut self, word: u8) -> nb::Result<(), Self::Error> {
-        self.writer
-            .push(word)
-            .map_err(|_| nb::Error::Other(Error::BufferFull))
+        let r = self.writer.try_write(&[word]);
+        if let Err(e) = r {
+            return Err(nb::Error::Other(Error::BufferFull))
+        }
+        Ok(())
     }
 
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
@@ -50,23 +54,19 @@ impl embedded_hal_02::serial::Write<u8> for SerialPort {
 }
 
 impl SerialPort {
-    pub fn available(&self) -> usize {
-        self.reader.len()
-    }
-    pub fn read(&mut self) -> Option<u8> {
-        self.reader.pop()
-    }
-    pub fn read_slice(&mut self, bytes: &mut [u8]) -> usize {
-        self.reader.pop_slice(bytes)
-    }
-    pub fn write(&mut self, byte: u8) -> Result<(), ()> {
-        self.writer.push(byte).map_err(|_| ())
-    }
-    pub fn write_slice(&mut self, bytes: &[u8]) -> Result<(), ()> {
-        if self.writer.push_slice(bytes) < bytes.len() {
-            return Err(());
+    pub fn read_slice(&self, bytes: &mut [u8]) -> Option<usize> {
+        let r = self.reader.try_read(bytes);
+        if let Err(e) = r {
+            return None;
         }
-        Ok(())
+        Some(r.unwrap())
+    }
+    pub fn write_slice(&self, bytes: &[u8]) -> Option<usize> {
+        let r = self.writer.try_write(bytes);
+        if let Err(e) = r {
+            return None
+        }
+        Some(r.unwrap())
     }
 }
 
@@ -182,72 +182,72 @@ pub fn bind_port(port_num: u8, protocol: u8) {
     let (rb1, rb2) = match port_num {
         0 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         1 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         2 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         3 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         4 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         5 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         6 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         7 => {
             let sc1: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
 
             let sc2: &'static mut SerialRingBuf =
-                static_cell::make_static!(ringbuf::StaticRb::default());
+                static_cell::make_static!(SerialRingBuf::new());
             (sc1, sc2)
         }
         _ => panic!("SERIAL portnum out of bounds"),
     };
-    let (r_rb_w, r_rb_r) = rb1.split_ref();
-    let (w_rb_w, w_rb_r) = rb2.split_ref();
+    let (r_rb_r, r_rb_w) = rb1.split();
+    let (w_rb_r, w_rb_w) = rb2.split();
     if ports
         .push(SerialWrapper {
             protocol,

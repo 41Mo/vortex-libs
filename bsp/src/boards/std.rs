@@ -5,6 +5,7 @@ use serial::*;
 use serial_manager as serial;
 use std::net::UdpSocket;
 use std::sync::Arc;
+use embedded_io_async::Write;
 
 impl super::GenericBoard for super::Board {
     fn init() {}
@@ -38,12 +39,10 @@ pub mod hw_tasks {
                 fmt::debug!("client connected {}", addr);
                 client_connected = true;
             }
-            let npushed = producer.push_slice(&buf[..nbytes]);
-            if npushed != nbytes {
-                let npushed1 = producer.push_slice(&buf[npushed..nbytes]);
-                assert_eq!(npushed+npushed1, nbytes);
-            }
 
+            if let Err(e) = producer.write_all(&buf[..nbytes]).await {
+                fmt::debug!("serial {} write err {}", name, e);
+            }
         }
     }
 
@@ -66,12 +65,8 @@ pub mod hw_tasks {
         };
         let mut buf = [0u8; 2048];
         loop {
-            let nbytes = consumer.pop_slice(&mut buf);
-            if nbytes == 0 {
-                embassy_time::Timer::after_millis(10).await;
-                continue;
-            }
-            match sock.send_to(&buf, client_addr).await {
+            let nbytes = consumer.read(&mut buf).await;
+            match sock.send_to(&buf[..nbytes], client_addr).await {
                 Ok(r) => (),
                 Err(e) => {
                     fmt::error!("{} write err {}", name, e);
@@ -80,6 +75,7 @@ pub mod hw_tasks {
             }
         }
     }
+
 
     use super::*;
     #[embassy_executor::task(pool_size = 8)]

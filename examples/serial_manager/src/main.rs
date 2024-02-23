@@ -8,6 +8,7 @@ use embassy_time;
 
 use bsp::{serial_runner, Board, GenericBoard};
 use serial_manager as serial;
+use embedded_hal_02::serial::Read;
 mod fmt;
 
 #[repr(u8)]
@@ -42,7 +43,7 @@ impl SerialTask1 {
 fn serial_comm(_cts: &GlobalContext) {
     fmt::debug!("task");
     let port = &mut _cts.serial_task.borrow_mut().port;
-    while let Some(v) = port.read() {
+    while let Ok(v) = port.read() {
         fmt::debug!("{}", v)
     }
     let s = "asd";
