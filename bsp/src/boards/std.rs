@@ -38,7 +38,12 @@ pub mod hw_tasks {
                 fmt::debug!("client connected {}", addr);
                 client_connected = true;
             }
-            producer.push_slice(&buf[..nbytes]);
+            let npushed = producer.push_slice(&buf[..nbytes]);
+            if npushed != nbytes {
+                let npushed1 = producer.push_slice(&buf[npushed..nbytes]);
+                assert_eq!(npushed+npushed1, nbytes);
+            }
+
         }
     }
 
