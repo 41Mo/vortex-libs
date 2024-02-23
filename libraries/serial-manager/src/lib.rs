@@ -56,6 +56,9 @@ impl SerialPort {
     pub fn read(&mut self) -> Option<u8> {
         self.reader.pop()
     }
+    pub fn read_slice(&mut self, bytes: &mut [u8]) -> usize {
+        self.reader.pop_slice(bytes)
+    }
     pub fn write(&mut self, byte: u8) -> Result<(), ()> {
         self.writer.push(byte).map_err(|_| ())
     }
