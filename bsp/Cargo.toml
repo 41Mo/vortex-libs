@@ -77,12 +77,13 @@ git = "https://github.com/embassy-rs/embassy.git"
 rev = "9cd0beaee37f9e1cc885ad162b63bca795478227"
 
 [features]
-# default = [
+default = [
+  # "std"
   # "matek_h743",
   # "defmt"
   # "h743vi"
   # "matek_h743"
-# ]
+]
 
 stm32 = [
   "embassy-stm32",
@@ -131,6 +132,7 @@ std = [
   "embassy-time/std",
   "async-io",
   "embedded-io-async/std",
+  "serial-manager/std",
 ]
 
 memoryx = ["embassy-stm32/memory-x"]

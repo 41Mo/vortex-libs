@@ -6,9 +6,21 @@ use core::cell::RefCell;
 use embassy_executor::Spawner;
 use embassy_time;
 
-use bsp::{Board, GenericBoard, serial0_runner};
+use bsp::{serial_runner, Board, GenericBoard};
 use serial_manager as serial;
+use embedded_hal_02::serial::Read;
 mod fmt;
+
+#[repr(u8)]
+enum SerialProtocols {
+    Text,
+}
+
+#[repr(u8)]
+enum SerialPortName {
+    Serial0,
+    Serial1,
+}
 
 #[cfg(feature = "defmt")]
 use {defmt_rtt as _, panic_probe as _};
@@ -23,17 +35,15 @@ struct SerialTask1 {
 
 impl SerialTask1 {
     fn new() -> Self {
-        let port = serial::find_by_protocol(serial::Protocol::MavlinkV2).unwrap();
+        let port = serial::find_by_protocol(SerialProtocols::Text as u8).unwrap();
         Self { port }
     }
 }
 
 fn serial_comm(_cts: &GlobalContext) {
+    fmt::debug!("task");
     let port = &mut _cts.serial_task.borrow_mut().port;
-    if port.available() == 0 {
-        return;
-    }
-    while let Some(v) = port.read() {
+    while let Ok(v) = port.read() {
         fmt::debug!("{}", v)
     }
     let s = "asd";
@@ -43,18 +53,35 @@ fn serial_comm(_cts: &GlobalContext) {
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     Board::init();
+    serial_manager::bind_ports(&[
+        (SerialPortName::Serial0 as u8, SerialProtocols::Text as u8),
+        (SerialPortName::Serial1 as u8, SerialProtocols::Text as u8),
+    ]);
 
-    fmt::unwrap!(_spawner.spawn(serial0_runner(
-        serial::Config::default().baud(115_200)
-    )));
+    #[cfg(not(feature = "std"))]
+    {
+        let mut cfg = serial::Config::default();
+        cfg.baud = 115_200;
+        fmt::unwrap!(_spawner.spawn(serial_runner(SerialPortName::Serial0 as u8, cfg)));
+    }
+
+    #[cfg(feature = "std")]
+    {
+        use std::str::FromStr;
+        for arg in std::env::args() {
+            fmt::debug!("arg: {}", arg);
+        }
+        let mut cfg = serial_manager::Config::default();
+        cfg.dev = heapless::String::from_str("127.0.0.1:11210")
+            .expect("Unable to make heapless string from str");
+        fmt::unwrap!(_spawner.spawn(serial_runner(SerialPortName::Serial0 as u8, cfg)));
+    }
 
     let context = GlobalContext {
         serial_task: SerialTask1::new().into(),
     };
-
     let serial_task = scheduler::task!(serial_comm(&context));
-    let tasks = [scheduler::Task::new(serial_task, 0.2, "task1")];
-
+    let tasks = [scheduler::Task::new(serial_task, 1.0, "task1")];
     const SCHED_LOOP_RATE_HZ: u32 = 100;
     // this is a syncronous scheduler
     let mut s = scheduler::Scheduler::new(tasks, SCHED_LOOP_RATE_HZ);
@@ -67,6 +94,7 @@ async fn main(_spawner: Spawner) {
 }
 
 #[cfg(not(feature = "defmt"))]
+#[cfg(not(feature = "std"))]
 mod nondefmt {
     use core::panic::PanicInfo;
     #[panic_handler]

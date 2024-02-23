@@ -13,7 +13,7 @@ pub struct GCSMAVLINK {
 
 impl FnNew for GCSMAVLINK {
     fn new() -> Self {
-        let port = serial::find_by_protocol(serial::Protocol::MavlinkV2).unwrap();
+        let port = serial::find_by_protocol(0).unwrap();
         Self {
             port,
             mav_header: mavlink::MavHeader {
